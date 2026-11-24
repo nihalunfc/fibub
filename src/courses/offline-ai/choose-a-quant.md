@@ -2,7 +2,7 @@
 title: Choosing the right size for your machine
 summary: A step-by-step way to pick the model size, quantisation and context length that give the best answers your machine can run, using the simulation and a quick test.
 minutes: 20
-updated: 2026-11-22
+updated: 2026-11-24
 sources:
   - 'Dettmers, T. and Zettlemoyer, L. (2023), The case for 4-bit precision: k-bit Inference Scaling Laws, ICML 2023 https://arxiv.org/abs/2212.09720'
   - 'llama.cpp quantisation types and sizes, project documentation (official page), https://github.com/ggml-org/llama.cpp/tree/master/tools/quantize'
@@ -34,7 +34,7 @@ It is like packing a suitcase for a flight: you want the most useful things insi
 
 ## 2. Five steps
 
-1. **Usable memory:** your graphics card's memory, or about three quarters of a Mac's, or your laptop's memory minus about 4 to 5 GB for the system.
+1. **Usable memory:** your graphics card's memory, or about two thirds of a Mac's (three quarters above 36 GB), or your laptop's memory minus about 4 to 5 GB for the system.
 2. **Context you need:** chat and short emails, 8K; long documents, 16K to 32K; whole reports or codebases, more.
 3. **Start at 4 bits** (Q4_K_M or MLX 4-bit) and find the biggest model that fits with that context and 10 to 20% to spare. Use the simulation below.
 4. **Check speed:** at least about 10 tokens per second for chat; for overnight jobs, slower is fine.
@@ -87,7 +87,7 @@ Try it: lower the bits to 3 or 2, then compare one scale for everything against 
 <div class="meaning">
 
 <dl>
-<dt>U</dt><dd>usable fast memory in GB (card memory, three quarters of a Mac, or laptop memory minus the system)</dd>
+<dt>U</dt><dd>usable fast memory in GB (card memory, two thirds of a Mac up to 36 GB and three quarters above, or laptop memory minus the system)</dd>
 <dt>P × b ÷ 8</dt><dd>the weights: billions of parameters × bits per weight ÷ 8</dd>
 <dt>k × C</dt><dd>the KV cache: GB per 1,000 tokens × thousands of tokens of context</dd>
 <dt>1</dt><dd>about 1 GB the engine needs for its own work</dd>
@@ -130,7 +130,7 @@ Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 an
 
 <div class="keypoints">
 
-- Usable memory: the card's memory, three quarters of a Mac, or laptop memory minus 4 to 5 GB.
+- Usable memory: the card's memory, two thirds of a Mac (three quarters above 36 GB), or laptop memory minus 4 to 5 GB.
 - Start at 4 bits and pick the biggest model that fits with your context and 10% to 20% headroom.
 - Headroom = usable − weights − KV cache − about 1 GB for the engine.
 - Aim for at least 10 tokens per second for chat, then test your pick against one alternative on real tasks.

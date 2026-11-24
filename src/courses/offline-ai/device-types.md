@@ -2,7 +2,7 @@
 title: Laptops, desktops, Macs, mini PCs and AI boxes
 summary: The five kinds of machine people run local AI on, what each is good at, and which one fits your work.
 minutes: 20
-updated: 2026-11-22
+updated: 2026-11-24
 sources:
   - 'Mac configurations and US prices: Daring Fireball, August 2026, https://daringfireball.net/2026/08/configurations_and_pricing_for_new_mac_minis_and_mac_studios'
   - 'DGX Spark and Ryzen AI Halo prices: LAVX News, 13 June 2026, https://news.lavx.hu/article/amd-prices-ryzen-ai-halo-at-3-999-as-dgx-spark-moves-to-4-699'
@@ -54,16 +54,16 @@ Here is that process for one real need: a 27B model at 4-bit with a long, 32,000
 
 <div class="steps">
 <div class="step"><b>Add up the need.</b> Weights about 16 GB, conversation memory about 9 GB at 32K tokens, working room 1 GB: about 26 GB of fast memory.</div>
-<div class="step"><b>Cross off what cannot hold it.</b> 8 to 16 GB laptops: no. A 16 GB graphics card: no. A 32 GB Mac gives the model about 24 GB (75%): just short.</div>
+<div class="step"><b>Cross off what cannot hold it.</b> 8 to 16 GB laptops: no. A 16 GB graphics card: no. A 32 GB Mac gives the model about 21 GB (two thirds): short.</div>
 <div class="step"><b>What is left.</b> A 32 GB graphics card, a Mac with 48 GB or more (about 36 GB usable), or a 128 GB AI box.</div>
 <div class="step"><b>Compare speed.</b> Reading 16 GB per token: a 1,792 GB/s card, ceiling 1,792 ÷ 16 ≈ 112 tokens per second; a 273 GB/s AI box or a roughly 270 GB/s Mac, about 17.</div>
 <div class="step"><b>Decide on the rest.</b> The card is fastest but draws hundreds of watts and needs a desktop. The Mac and the box are slower, quiet and frugal. Your noise, power and software needs decide.</div>
 </div>
 
-On a Mac, about three quarters of the memory can go to the model, so the rule is:
+On a Mac, macOS lets the graphics side use about two thirds of the memory on Macs with 36 GB or less and about three quarters on bigger ones, so the rule is:
 
 ```math
-0.75 \times \text{Mac memory} \ge \text{weights} + \text{KV cache} + 1\ \text{GB}
+f \times \text{Mac memory} \ge \text{weights} + \text{KV cache} + 1\ \text{GB}, \quad f \approx \tfrac{2}{3}\ (\le 36\ \text{GB}),\ \tfrac{3}{4}\ (\text{above})
 ```
 
 <div class="problem" data-problem="device-types-smallest-mac"></div>
@@ -71,7 +71,7 @@ On a Mac, about three quarters of the memory can go to the model, so the rule is
 <div class="meaning">
 
 <dl>
-<dt>Usable memory</dt><dd>What the model can actually have: almost all of a graphics card, about 75% of a Mac's unified memory, less on a laptop that shares with everything else.</dd>
+<dt>Usable memory</dt><dd>What the model can actually have: almost all of a graphics card, about two thirds of a Mac's unified memory (three quarters above 36 GB), less on a laptop that shares with everything else.</dd>
 <dt>Biggest model + context + 1</dt><dd>Your need in GB: weights, conversation memory and working room.</dd>
 <dt>Upgrade path</dt><dd>Whether you can add memory later. Desktops can take a new card; Macs and most AI boxes cannot.</dd>
 <dt>Physical meaning</dt><dd>Memory size is the size of the box you can carry; bandwidth is how fast you can walk with it. Pick a box big enough for the load first, because no amount of speed lets a lorry's load fit in a car.</dd>

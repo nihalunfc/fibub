@@ -11,15 +11,16 @@ ads: false
 order: 1709
 icon: camera
 works: offline
-updated: 2026-11-16
+updated: 2026-11-24
 related: [image-resizer, compress-file]
 sources:
   - "Canada, 50 x 70 mm, face 31 to 36 mm: https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos (read 2026-11-10)"
   - "United States, 2 x 2 in (51 x 51 mm), head 1 to 1 3/8 in (25 to 35 mm): https://travel.state.gov/en/passports/apply/help/photos.html (read 2026-11-10)"
   - "United Kingdom, 45 x 35 mm, head 29 to 34 mm: https://gov.uk/photos-for-passports/photo-requirements (read 2026-11-10)"
-  - "India, 2 x 2 in (51 x 51 mm), head 35 to 40 mm: Consulate General of India, Toronto photo specification, https://cgitoronto.gov.in/docs/1717007167Photo_Specification.pdf (read 2026-11-10). Check passportindia.gov.in for your own application."
+  - "India, ICAO digital photo from 1 September 2025: 630 x 810 pixels, white background, face 80 to 85% of the photo: Embassy of India, Manila, Guidelines for ICAO Compliant Photographs for Passport Applications, https://eoimanila.gov.in/docs/Guidelines_for_ICAO_Compliant_Photographs_for_Passport_Applications.pdf, and Consulate General of India, Toronto, https://www.cgitoronto.gov.in/news_detail/?newsid=180 (read 2026-11-24). The 35 x 45 mm print size is fibub's choice for the same 7:9 shape. Check passportindia.gov.in or your mission for your own application."
+  - "India, older 2 x 2 in (51 x 51 mm), head 35 to 40 mm, used before September 2025: Consulate General of India, Toronto photo specification, https://cgitoronto.gov.in/docs/1717007167Photo_Specification.pdf (read 2026-11-10). Check passportindia.gov.in for your own application."
   - "United Arab Emirates, 35 x 45 mm, white background: Federal Authority for Identity, Citizenship, Customs and Port Security FAQ, https://icp.gov.ae/en/faq/ (checked 2026-11-16). The page gives no head size, so the guide lines use the ICAO range of 70 to 80% of photo height. Check the official source."
-  - "Not included (checked 2026-11-16): India 35 x 45 mm (the Passport Seva photo pages could not be read, so the confirmed 2 x 2 in stays), UAE visa and Emirates ID sizes (no size on the ICP pages), Saudi Arabia, Qatar, Kuwait, Oman, Bahrain and Schengen, because no official page stating a size could be confirmed."
+  - "Not included (checked 2026-11-16): UAE visa and Emirates ID sizes (no size on the ICP pages), Saudi Arabia, Qatar, Kuwait, Oman, Bahrain and Schengen, because no official page stating a size could be confirmed."
 flow:
   - { icon: image, label: "Photo" }
   - { icon: crop, label: "Align" }

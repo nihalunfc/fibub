@@ -11,11 +11,11 @@ ads: false
 order: 1305
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-24
 related: [osmosis-lab, heart-circulation, digestion-journey, kidney-function]
 sources:
   - "The parts of the nephron and what each does: standard school biology, written by fibub in its own words."
-  - "Round teaching values: about 125 mL a minute (180 L a day) filtered, half the urea taken back, 99.4 % of sodium taken back, and a single glucose threshold of 180 mg/dL. Real kidneys vary; this is not medical."
+  - "Round teaching values: about 125 mL a minute (180 L a day) filtered, half the urea taken back, 99.4 % of sodium taken back, glucose spilling into urine from 180 mg/dL (the renal threshold) and a transport maximum of 375 mg a minute (the textbook value for men; about 300 in women). Real kidneys vary; this is not medical."
   - "Each number on the page was checked by hand in the tests (for example 1.5 L of urine is 0.83 % of 180 L, so 99.17 % of the water is taken back)."
   - "Drawings are fibub's own simple shapes. Nothing you enter is stored or sent anywhere."
 flow:
@@ -34,11 +34,11 @@ Each kidney holds about a million tiny tubes called **nephrons**. Every nephron 
 1. Pick a **Level**. *Class 10* gives the main idea of each part. *Class 11* adds the filtration rate, the share of water taken back in each part, the counter-current loop of Henle, and the hormones ADH and aldosterone.
 2. **Tap a part** of the nephron: the glomerulus and capsule, the proximal tubule, the loop of Henle, the distal tubule or the collecting duct.
 3. Move **water you drink in a day**. More water means more, paler urine; less water means the body keeps more and the urine is small and concentrated.
-4. Move **blood glucose**. Above 180 mg/dL (in this model) the tubules cannot take all the glucose back, and sugar spills into the urine.
+4. Move **blood glucose**. Above about 180 mg/dL (the renal threshold) some nephrons cannot take all their glucose back, and sugar starts to spill into the urine. The loss grows slowly at first (the "splay", because nephrons differ) and then rises one for one once every tubule is at its transport maximum, about 375 mg a minute.
 
 ## Worked example
 
-With **2 L** drunk a day, this model gives **1.5 L** of urine. The kidneys filter 125 mL a minute × 1440 minutes = **180 L** a day, so the urine is 1.5 ÷ 180 = 0.83 % of the filtrate: **99.17 %** of the water goes back into the blood. The filtrate carries 54 g of urea; half is taken back, so 27 g leaves in 1.5 L, a concentration of 18 g per litre. At a blood glucose of **90 mg/dL**, 162 g of glucose is filtered and all of it is taken back. Raise it to **300 mg/dL** and 540 g is filtered, but only 324 g can be taken back, so **216 g** a day ends up in the urine.
+With **2 L** drunk a day, this model gives **1.5 L** of urine. The kidneys filter 125 mL a minute × 1440 minutes = **180 L** a day, so the urine is 1.5 ÷ 180 = 0.83 % of the filtrate: **99.17 %** of the water goes back into the blood. The filtrate carries 54 g of urea; half is taken back, so 27 g leaves in 1.5 L, a concentration of 18 g per litre. At a blood glucose of **90 mg/dL**, 162 g of glucose is filtered and all of it is taken back. Raise it to **300 mg/dL** and 540 g is filtered (375 mg a minute). That is past the threshold load of 225 mg a minute but still in the splay, so this model takes back 486 g and **54 g** a day ends up in the urine.
 
 ## Where this fits in school
 

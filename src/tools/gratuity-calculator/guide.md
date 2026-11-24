@@ -12,11 +12,12 @@ ads: true
 order: 1729
 icon: calculator
 works: offline
-updated: 2026-11-16
+updated: 2026-11-24
 related: [india-income-tax, budget-calculator, hourly-salary, leave-pay]
 sources:
   - "India formula (15/26 x last basic + DA x years, part year over 6 months counts as a year), not-covered formula and Rs 20 lakh exemption: Income Tax Department, Taxability of Retirement Benefits (as amended by Finance Act, 2025), https://incometaxindia.gov.in/tutorials/77.taxability-of-retirement-benefits.pdf (checked 2026-11-10)"
   - "Fixed-term employees eligible after one year of continuous service, Labour Codes in force from 21 November 2025: PIB release, https://labour.gov.in/sites/default/files/pib2192463.pdf (checked 2026-11-10)"
+  - "Wages at least 50 % of total remuneration (allowances over 50 % added back), Code on Wages, 2019, section 2(y), and Code on Social Security, 2020, in force 21 November 2025: PIB release, https://labour.gov.in/sites/default/files/pib2192463.pdf (checked 2026-11-24). Check the official source"
   - "UAE private sector: 21 days' basic wage a year for the first 5 years, 30 days after, pro rata, at least 1 year, cap of 2 years' wage: u.ae, End of service benefits for workers in the private sector, https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/end-of-service-benefits-for-employees-in-the-private-sector and Federal Decree-Law 33 of 2021, Art. 51 and 67 (checked 2026-11-10). Daily wage as basic / 30 is fibub's reading of Art. 67: estimate, check the official source"
   - "Saudi Arabia: Labor Law (Royal Decree M/51), Art. 2, 84 and 85, HRSD, https://www.hrsd.gov.sa/sites/default/files/2023-02/Labor.pdf (checked 2026-11-10)"
   - "Qatar: at least 3 weeks' last basic wage a year after 1 year, part years pro rata, on the basic wage: Labour Law 14 of 2004, Art. 54 and 72, Ministry of Labour, https://www.mol.gov.qa/admin/LawsDocuments/%D9%82%D8%A7%D9%86%D9%88%D9%86%20%D8%A7%D9%84%D8%B9%D9%85%D9%84%20%D8%B1%D9%82%D9%85%20(14)%20%D9%84%D8%B3%D9%86%D8%A9%2020041.pdf (checked 2026-11-16). Daily wage as basic / 30 is fibub's assumption: estimate, check the official source"
@@ -47,7 +48,7 @@ Add pay for unused holiday with [[leave-pay]], see what the taxable part costs y
 
 ## The rules
 
-- **India, covered by the Act** (10 or more staff): 15 ÷ 26 × last monthly pay × years. A part year of more than 6 months counts as a full year. You need 5 years, or 1 year as a fixed-term employee since November 2025. The Act pays at most Rs 20 lakh.
+- **India, covered by the Act** (10 or more staff): 15 ÷ 26 × last monthly pay × years. A part year of more than 6 months counts as a full year. You need 5 years, or 1 year as a fixed-term employee since November 2025. The Act pays at most Rs 20 lakh. Since the Labour Codes came into force on 21 November 2025, "wages" must be at least half of your total pay: if your allowances (HRA, conveyance, special allowance and the like) come to more than 50 % of the total, the amount over 50 % is added back to basic plus DA before the formula. Example: total pay Rs 1,00,000 with basic plus DA Rs 40,000; allowances are Rs 60,000, Rs 10,000 over half, so gratuity is worked out on Rs 50,000.
 - **India, not covered**: half a month's average pay for each completed year.
 - **India tax**: tax-free up to the least of the formula, Rs 20 lakh and what you were paid. Government employees pay no tax on it.
 - **UAE**: 21 days' basic salary a year for the first 5 years, 30 days a year after that, part years pro rata, at least 1 year, never more than 2 years' basic.

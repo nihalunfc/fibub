@@ -1,10 +1,12 @@
 // Passport photo helpers: country sizes, print-sheet layout and background whitening. Sizes were read from official pages on 2026-11-10.
-export interface Spec { id: string; name: string; wmm: number; hmm: number; headMin: number; headMax: number; note: string }
+export interface Spec { id: string; name: string; wmm: number; hmm: number; headMin: number; headMax: number; note: string; px?: [number, number] }
+// px: an exact digital size in pixels, used for the single-photo download instead of the 300 dpi print size.
 export const SPECS: Spec[] = [
   { id: 'ca', name: 'Canada passport (50 x 70 mm)', wmm: 50, hmm: 70, headMin: 31, headMax: 36, note: 'Face height from chin to crown 31 to 36 mm.' },
   { id: 'us', name: 'United States passport (2 x 2 in)', wmm: 50.8, hmm: 50.8, headMin: 25, headMax: 35, note: 'Head 1 to 1 3/8 in (25 to 35 mm) from chin to top of head.' },
   { id: 'uk', name: 'United Kingdom passport (35 x 45 mm)', wmm: 35, hmm: 45, headMin: 29, headMax: 34, note: 'Head 29 to 34 mm from chin to crown.' },
-  { id: 'in', name: 'India passport (2 x 2 in, 51 x 51 mm)', wmm: 50.8, hmm: 50.8, headMin: 35, headMax: 40, note: 'Head 35 to 40 mm (1.4 to 1.6 in) from top of hair to chin.' },
+  { id: 'in-icao', name: 'India passport, ICAO digital (630 x 810 px)', wmm: 35, hmm: 45, headMin: 36, headMax: 38.3, px: [630, 810], note: 'From 1 September 2025 Indian passport offices and missions take ICAO-style photos: 630 x 810 pixels, plain white background, face (top of head to chin) 80 to 85% of the photo height. The single photo downloads at exactly 630 x 810 pixels; the print sheet uses 35 x 45 mm.' },
+  { id: 'in', name: 'India passport, older 2 x 2 in (51 x 51 mm)', wmm: 50.8, hmm: 50.8, headMin: 35, headMax: 40, note: 'The size Indian missions asked for before September 2025; some offices may still accept it. Head 35 to 40 mm (1.4 to 1.6 in) from top of hair to chin.' },
   { id: 'ae', name: 'United Arab Emirates passport (35 x 45 mm)', wmm: 35, hmm: 45, headMin: 31.5, headMax: 36, note: 'Size from the ICP (icp.gov.ae) FAQ, checked 2026-11-16. The page gives no head size, so the guide lines use the general ICAO range of 70 to 80% of the photo height. Check the official source.' },
 ];
 export const DPI = 300;

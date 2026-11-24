@@ -76,7 +76,7 @@
   function show() {
     const s = spec(), W = Math.min(340, Math.round(340 * (s.wmm >= s.hmm ? 1 : s.wmm / s.hmm * 1.2))), H = Math.round(W * s.hmm / s.wmm);
     paint(cv, W, H, true); cv.dataset.size = `${W}x${H}`;
-    $('.pp-rule').textContent = `${s.wmm} x ${s.hmm} mm. ${s.note} Check the official page before you print.`;
+    $('.pp-rule').textContent = `${s.wmm} x ${s.hmm} mm${s.px ? ` (${s.px[0]} x ${s.px[1]} pixels as a file)` : ''}. ${s.note} Check the official page before you print.`;
     const [pw, ph] = [mmToPx(s.wmm), mmToPx(s.hmm)], sh = SHEETS[sheetSel.value], L = layout(sh.w, sh.h, pw, ph);
     $('.pp-count').textContent = `${L.count} photo${L.count === 1 ? '' : 's'} fit on a ${sh.name} sheet (${pw} x ${ph} pixels each, 300 dpi).`;
   }
@@ -102,11 +102,12 @@
     const n = await createImageBitmap(c); bmp.close(); bmp = n; reset();
   }
   $('.pp-rotl').addEventListener('click', () => turn(-90)); $('.pp-rotr').addEventListener('click', () => turn(90));
-  const photo = () => { const s = spec(), c = document.createElement('canvas'); paint(c, mmToPx(s.wmm), mmToPx(s.hmm), false); return c; };
+  // forFile: the single-photo download uses the spec's exact digital size when it has one; print sheets stay at 300 dpi.
+  const photo = (forFile = false) => { const s = spec(), c = document.createElement('canvas'), [w, h] = forFile && s.px ? s.px : [mmToPx(s.wmm), mmToPx(s.hmm)]; paint(c, w, h, false); return c; };
   const blob = (c: HTMLCanvasElement): Promise<Blob> => new Promise((r) => c.toBlob((b) => r(b!), 'image/jpeg', 0.92));
   $('.pp-one').addEventListener('click', async () => {
     if (!bmp) return;
-    const c = photo(); let b = await blob(c), note = 'Saved your photo.';
+    const c = photo(true); let b = await blob(c), note = `Saved your photo (${c.width} x ${c.height} pixels).`;
     if ($<HTMLInputElement>('.pp-cap-on').checked) {
       const max = Math.round(+$<HTMLInputElement>('.pp-cap').value * 1024);
       if (!(max >= 10240)) { say('Enter a size of at least 10 KB.', true); return; }
@@ -116,7 +117,7 @@
         if (!best) { say('Even at the lowest quality this photo stays above that size. Try a larger limit.', true); return; }
         b = best;
       }
-      note = `Saved your photo, ${(b.size / 1024).toFixed(0)} KB.`;
+      note = `Saved your photo, ${c.width} x ${c.height} pixels, ${(b.size / 1024).toFixed(0)} KB.`;
     }
     download(b, `passport-photo-${spec().id}.jpg`, 'image/jpeg'); say(note);
   });

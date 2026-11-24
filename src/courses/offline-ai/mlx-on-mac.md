@@ -2,7 +2,7 @@
 title: MLX on a Mac
 summary: Apple's MLX runs models fast on Apple Silicon Macs. Install it with one command, run a model, and start a local server.
 minutes: 20
-updated: 2026-11-22
+updated: 2026-11-24
 sources:
   - 'MLX (Apple, open source), https://github.com/ml-explore/mlx'
   - 'mlx-lm, the language-model tools for MLX, https://github.com/ml-explore/mlx-lm'
@@ -25,7 +25,7 @@ quiz:
 
 **Module 9 · about 20 minutes · read first: 9.2. Mac only; on a PC, skip to 9.5.** You'll be able to run a model with MLX and serve it to other programs.
 
-<div class="bigidea">On an Apple Silicon Mac the processor and graphics share one big memory, so about three quarters of it can hold a model, and the memory's read speed sets how fast that model writes.</div>
+<div class="bigidea">On an Apple Silicon Mac the processor and graphics share one big memory, so about two thirds of it (three quarters on Macs over 36 GB) can hold a model, and the memory's read speed sets how fast that model writes.</div>
 
 ## 1. Why this matters
 
@@ -33,14 +33,14 @@ On an Apple Silicon Mac (M1 or later), MLX often runs models faster than other e
 
 ## 2. Unified memory in one paragraph
 
-On a PC, the graphics card has its own memory (often 8 to 16 GB) separate from the main memory. On an Apple Silicon Mac, processor and graphics share one pool: **unified memory**. So a 32 GB Mac can put a 19 GB model where the graphics side reaches it at full speed. The catch: macOS keeps some for itself, so plan on using about three quarters of the total.
+On a PC, the graphics card has its own memory (often 8 to 16 GB) separate from the main memory. On an Apple Silicon Mac, processor and graphics share one pool: **unified memory**. So a 32 GB Mac can put a 19 GB model where the graphics side reaches it at full speed. The catch: macOS keeps some for itself. By default it lets the graphics side use about two thirds of the memory on Macs with 36 GB or less and about three quarters on bigger Macs, so plan on that (21 GB on a 32 GB Mac: a 19 GB model fits with a short conversation).
 
 ### Watch it happen: will it fit, and how fast?
 
 <div class="steps">
 <div class="step"><p><b>The Mac.</b> 32 GB of unified memory that can be read at 170 GB per second (Apple lists this "memory bandwidth" for each chip).</p></div>
-<div class="step"><p><b>Room for models.</b> About three quarters: 0.75 × 32 = <b>24 GB</b>. macOS and your apps keep the rest.</p></div>
-<div class="step"><p><b>Pick a model.</b> A 16 GB 4-bit model fits, with 8 GB left for the conversation. A 30 GB one does not.</p></div>
+<div class="step"><p><b>Room for models.</b> About two thirds on a Mac of 36 GB or less: 32 × 2/3 ≈ <b>21 GB</b>. macOS and your apps keep the rest.</p></div>
+<div class="step"><p><b>Pick a model.</b> A 16 GB 4-bit model fits, with about 5 GB left for the conversation. A 30 GB one does not.</p></div>
 <div class="step"><p><b>Top speed.</b> Each token reads the whole model once: 170 ÷ 16 ≈ <b>10.6 tokens per second</b> at best. Real speed is often 60% to 80% of that.</p></div>
 <div class="step"><p><b>Smaller is faster.</b> A 7.7 GB model on the same Mac: 170 ÷ 7.7 ≈ 22 tokens per second. Half the size, about twice the speed.</p></div>
 </div>
@@ -74,24 +74,24 @@ mlx_lm.server --model mlx-community/<model-name> --port 8080
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
-**Principle:** what a Mac can run is set by about three quarters of its memory; how fast is set by its memory bandwidth.
+**Principle:** what a Mac can run is set by about two thirds of its memory (three quarters above 36 GB); how fast is set by its memory bandwidth.
 
-**Equation:** largest model ≈ 0.75 × memory; top speed ≈ bandwidth ÷ model size.
+**Equation:** largest model ≈ f × memory, with f ≈ 2/3 up to 36 GB and 3/4 above; top speed ≈ bandwidth ÷ model size.
 
 ```math
-S_{\max} \approx 0.75 \times M, \qquad \text{top speed} \approx \frac{B}{S}
+S_{\max} \approx f \times M, \qquad \text{top speed} \approx \frac{B}{S}
 ```
 
 **Analogy:** a shared kitchen. Everyone cooks from one big fridge, so nobody waits for food to be carried from another room, but the house still keeps a shelf for itself.
 
-**Try it:** a 32 GB Mac with 170 GB/s and a 16 GB model? (Fits: 0.75 × 32 = 24 GB. Top speed about 170 ÷ 16 ≈ 10 tokens per second, before MoE speed-ups.)
+**Try it:** a 32 GB Mac with 170 GB/s and a 16 GB model? (Fits: 32 × 2/3 ≈ 21 GB. Top speed about 170 ÷ 16 ≈ 10 tokens per second, before MoE speed-ups.)
 </details>
 
 <div class="meaning">
 
 <dl>
 <dt>M</dt><dd>the Mac's unified memory in GB</dd>
-<dt>S<sub>max</sub></dt><dd>the largest total (model plus conversation) you should plan for, about three quarters of M</dd>
+<dt>S<sub>max</sub></dt><dd>the largest total (model plus conversation) you should plan for, about f × M: two thirds of M up to 36 GB, three quarters above</dd>
 <dt>S</dt><dd>the model file's size in GB</dd>
 <dt>B</dt><dd>memory bandwidth: how many GB per second the chip can read</dd>
 <dt>Physical meaning</dt><dd>Memory size decides <i>which</i> models a Mac can run; bandwidth decides <i>how fast</i>. Two Macs with the same memory can differ two or three times in speed if their chips read memory at different rates.</dd>
@@ -109,7 +109,7 @@ S_{\max} \approx 0.75 \times M, \qquad \text{top speed} \approx \frac{B}{S}
 
 ## 4. Worked example
 
-*Made-up numbers.* Lena has a 24 GB MacBook. Three quarters is 18 GB, so a 19 GB model is out and a 7.7 GB 12B model is easy. With MLX it writes about 20 tokens per second; she starts `mlx_lm.server` each morning and points her writing scripts at it.
+*Made-up numbers.* Lena has a 24 GB MacBook. Two thirds is 16 GB, so a 19 GB model is out and a 7.7 GB 12B model is easy. With MLX it writes about 20 tokens per second; she starts `mlx_lm.server` each morning and points her writing scripts at it.
 
 ## 5. Practice
 
@@ -130,7 +130,7 @@ S_{\max} \approx 0.75 \times M, \qquad \text{top speed} \approx \frac{B}{S}
 <div class="keypoints">
 
 - MLX is Apple's engine for M-series Macs; `pip install mlx-lm` brings generate, chat and server commands.
-- Unified memory lets the graphics side use most of the Mac's memory; plan on about three quarters.
+- Unified memory lets the graphics side use most of the Mac's memory; plan on about two thirds (three quarters on Macs over 36 GB).
 - Top speed ≈ memory bandwidth ÷ model size: half the size, about twice the speed.
 - mlx-community on Hugging Face has ready-converted 4-bit models; once downloaded they run offline.
 

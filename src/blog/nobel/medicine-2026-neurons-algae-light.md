@@ -54,7 +54,7 @@ Early attempts were clever but complicated. In 2002 Gero Miesenböck's group mad
 
 Animal eyes use **rhodopsins**: proteins holding a molecule of **retinal** (a form of vitamin A) that changes shape when it absorbs a photon. In our eyes the protein then sets off a chain of chemical signals, which takes tens of milliseconds.
 
-Microbes have their own family of rhodopsins that skip the chain. In 1971 Dieter Oesterhelt and Walther Stoeckenius found **bacteriorhodopsin** in the purple membrane of a salt-loving microbe, *Halobacterium salinarum*: a protein that, each time it absorbs a photon, **pumps one proton** across the membrane. In 1977 a light-driven **chloride pump**, **halorhodopsin**, was found in the same kind of microbe. These pumps move one ion per photon, too few to change a neuron's voltage much, but they showed that a single retinal protein can move ions with light. (Halorhodopsin will be back in part 3, as an "off switch".)
+Microbes have their own family of rhodopsins that skip the chain. In 1971 Dieter Oesterhelt and Walther Stoeckenius found **bacteriorhodopsin** in the purple membrane of a salt-loving microbe, *Halobacterium salinarum*: a protein that, each time it absorbs a photon, **pumps one proton** across the membrane. In 1977 a light-driven **chloride pump**, **halorhodopsin**, was found in the same kind of microbe. These pumps move one ion per photon, too few to change a neuron's voltage much, but they showed that a single retinal protein can move ions with light. (Halorhodopsin later became a widely used "off switch" for neurons.)
 
 ## An alga that swims to the light
 

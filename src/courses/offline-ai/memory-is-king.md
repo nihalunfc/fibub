@@ -2,7 +2,7 @@
 title: 'Memory is king: the model must fit'
 summary: The single most important number for local AI is how much fast memory your machine can give the model. Work out what fits on yours, with a simulation.
 minutes: 25
-updated: 2026-11-22
+updated: 2026-11-24
 sources:
   - 'Model download sizes (Gemma 4, Qwen3.8, gpt-oss) from the Ollama library, read 16 November 2026 via BenchLM, https://benchlm.ai/best/ollama-models'
   - 'Mac memory and bandwidth figures: ComputingForGeeks, checked 27 October 2026, https://computingforgeeks.com/best-mac-for-local-llm/'
@@ -16,7 +16,7 @@ quiz:
   - q: Why can a 32 GB Mac run bigger models than a PC with an 8 GB graphics card?
     choices: ['Macs have faster internet', 'The Mac can give most of its 32 GB to the model as fast unified memory', 'Macs use smaller models']
     ans: 1
-    why: Apple Silicon shares one memory pool between processor and graphics, so about three quarters of it can hold the model.
+    why: Apple Silicon shares one memory pool between processor and graphics, so about two thirds of it (three quarters on Macs over 36 GB) can hold the model.
   - q: What is the weight memory of an 8-billion-parameter model at 4 bits per weight?
     choices: ['About 1 GB', 'About 4 GB', 'About 32 GB']
     ans: 1

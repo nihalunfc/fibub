@@ -11,7 +11,7 @@ ads: true
 order: 2
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-24
 related: [decay-calculator, decay-chain, beer-lambert-calculator, uncertainty-calculator, stopping-power, counting-statistics, spectrum-peak-fitter, decay-heat]
 sources:
   - "No attenuation data is used: the built-in coefficients are computed from formulas. Klein-Nishina Compton cross-section: Klein, O. and Nishina, Y. (1929), Zeitschrift für Physik 52, 853. Photoelectric scaling law (the Born limits that give the familiar Z⁴ to Z⁵ over E³ behaviour) and near-threshold pair production: Heitler, W., The Quantum Theory of Radiation, and Evans, R. D., The Atomic Nucleus."
@@ -61,7 +61,7 @@ This page gives all of these for six common shield materials between 0.1 and 2 M
 
 ## Worked example
 
-A made-up Cs-137 source (0.662 MeV) behind **2 cm of lead**. The model gives μ/ρ = 0.0941 cm²/g (65 % Compton, 35 % photoelectric, so the page flags it as rough) and ρ = 11.35 g/cm³, so μ = **1.068 /cm**, the half-value layer is **0.649 cm** and the tenth-value layer **2.16 cm**. A narrow beam is cut to **11.8 %**. With the simple buildup, the transmission is 37 %, three times more. To get down to 1 % takes **4.31 cm** without buildup (two tenth-value layers) or 6.22 cm with it.
+A made-up Cs-137 source (0.662 MeV) behind **2 cm of lead**. The model gives μ/ρ = 0.0941 cm²/g (65 % Compton, 35 % photoelectric, so the page flags it as rough) and ρ = 11.35 g/cm³, so μ = **1.068 /cm**, the half-value layer is **0.649 cm** and the tenth-value layer **2.16 cm**. A narrow beam is cut to **11.8 %**. With the simple buildup, the transmission is 37 %, three times more. To get down to 1 % takes **4.31 cm** without buildup (two tenth-value layers) or 6.22 cm with it. The textbook value is lower: NIST XCOM gives μ/ρ ≈ 0.111 cm²/g for lead at 0.662 MeV, so μ ≈ 1.26 /cm and the half-value layer is about **0.55 to 0.56 cm**. Type 0.111 into the μ/ρ box to use it; the built-in formulas read low for heavy elements, where the photoelectric part is large.
 
 The table compares the materials at the same energy: tungsten needs a 0.426 cm half-value layer, steel 1.22 cm, concrete 3.87 cm and water 8.09 cm. For Co-60 (1.25 MeV) in concrete the model gives a half-value layer of 5.25 cm, and says the estimate is 99.9 % Compton, so it is one of the reliable ones.
 

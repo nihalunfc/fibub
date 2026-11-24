@@ -1,10 +1,12 @@
 // Kidney nephron filter (#1305): a teaching model of a day's filtration and reabsorption in both kidneys. Round
-// textbook-style values (about 125 mL a minute filtered, 180 L a day), and a simple glucose model with a single
-// threshold. Not medical. No DOM.
+// textbook-style values (about 125 mL a minute filtered, 180 L a day). Glucose: spills into urine above the renal
+// threshold (180 mg/dL), and the tubules reach their transport maximum (Tm, about 375 mg a minute in men, 300 in
+// women) more slowly, through the "splay" between the two. Not medical. No DOM.
 
 export const GFR_ML_MIN = 125;                    // filtered by both kidneys, mL a minute
 export const FILTRATE_L_DAY = (GFR_ML_MIN * 1440) / 1000; // 180 L a day
-export const GLUCOSE_THRESHOLD = 180;             // mg/dL in this model: above it glucose spills into urine
+export const GLUCOSE_THRESHOLD = 180;             // mg/dL, renal threshold: above it glucose starts to spill into urine
+export const GLUCOSE_TM = 375;                    // mg a minute, transport maximum (textbook value for men; ~300 in women)
 export const UREA_PLASMA_G_L = 0.3;               // g/L, a round teaching value
 export const UREA_BACK = 0.5;                     // share of filtered urea that goes back into the blood
 export const SODIUM_PLASMA = 140;                 // mmol/L
@@ -14,12 +16,15 @@ export const OTHER_WATER_LOSS = 0.5;              // L a day, net loss by sweat,
 /** Urine volume a day (L) from water drunk a day (L), never below 0.5 L. */
 export const urineL = (drinkL: number) => Math.max(0.5, drinkL - OTHER_WATER_LOSS);
 
-/** Glucose filtered and lost in urine, in grams a day, for blood glucose in mg/dL. */
-export function glucose(mgdl: number) {
+/** Glucose filtered and lost in urine, in grams a day, for blood glucose in mg/dL. Between the threshold load (a)
+ *  and full saturation (c = 2 Tm - a) the loss rises smoothly as (L - a)^2 / (2 (c - a)) (the splay); above c the
+ *  tubules take back exactly Tm, so the loss is L - Tm. Both pieces meet with the same value and slope at c. */
+export function glucose(mgdl: number, tm = GLUCOSE_TM) {
   const perMin = (GFR_ML_MIN / 100) * mgdl;            // mg a minute filtered (1 dL = 100 mL)
-  const maxBack = (GFR_ML_MIN / 100) * GLUCOSE_THRESHOLD; // most the tubules can take back, mg a minute
-  const lost = Math.max(0, perMin - maxBack);
-  return { filtered: (perMin * 1440) / 1000, urine: (lost * 1440) / 1000, back: (Math.min(perMin, maxBack) * 1440) / 1000 };
+  const a = (GFR_ML_MIN / 100) * GLUCOSE_THRESHOLD;    // load where glucose first appears in urine, mg a minute
+  const c = 2 * tm - a;                                 // load where the tubules are fully saturated
+  const lost = perMin <= a ? 0 : perMin >= c ? perMin - tm : (perMin - a) ** 2 / (2 * (c - a));
+  return { filtered: (perMin * 1440) / 1000, urine: (lost * 1440) / 1000, back: ((perMin - lost) * 1440) / 1000 };
 }
 
 export type Row = { id: string; name: string; unit: string; filtered: number; urine: number };

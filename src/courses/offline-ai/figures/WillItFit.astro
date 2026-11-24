@@ -4,7 +4,7 @@
 const MODELS = [['2', 'Gemma 4 E2B class (about 2 to 5B)'], ['4', 'Gemma 4 E4B class'], ['8', '8B'], ['12', 'Gemma 4 12B'], ['27', 'Qwen3.8-27B'], ['31', 'Gemma 4 31B'], ['70', '70B'], ['120', 'gpt-oss-120b (MoE, 5.1B active)']];
 // [id, label, usable GB, bandwidth GB/s]
 const DEVICES = [
-  ['l8', 'Typical laptop, 8 GB memory', 4, 60], ['l16', 'Typical laptop, 16 GB memory', 11, 100], ['m32', 'Mac mini, 32 GB (M6)', 24, 170],
+  ['l8', 'Typical laptop, 8 GB memory', 4, 60], ['l16', 'Typical laptop, 16 GB memory', 11, 100], ['m32', 'Mac mini, 32 GB (M6)', 21, 170],
   ['g16', 'Graphics card, 16 GB (RTX 5060 Ti class)', 15, 448], ['g24', 'Graphics card, 24 GB (used RTX 3090)', 23, 936],
   ['g32', 'Graphics card, 32 GB (RTX 5090)', 31, 1792], ['s128', 'AI box, 128 GB (DGX Spark class)', 110, 273], ['x128', 'Mac Studio, 128 GB (M5 Max)', 96, 614],
 ];
@@ -20,7 +20,7 @@ const DEVICES = [
   <div class="wf-bar" aria-hidden="true"><span class="wf-w"></span><span class="wf-k"></span><span class="wf-o"></span><i class="wf-cap"></i></div>
   <p class="wf-legend"><span class="sw w"></span>model weights <span class="sw k"></span>conversation memory (KV cache) <span class="sw o"></span>working room · line = what this device can give the model</p>
   <p class="wf-out" aria-live="polite" data-out></p>
-  <figcaption>Rough rules: weights = billions of parameters × bits ÷ 8; conversation memory ≈ 0.01 GB per billion parameters per 1,000 tokens; 1 GB working room; top speed ≈ memory bandwidth ÷ weights read per token. Real numbers vary by model and engine by 20% or more. Usable memory leaves room for the system (Macs about three quarters). Device speeds are makers' figures and the sources in this lesson.</figcaption>
+  <figcaption>Rough rules: weights = billions of parameters × bits ÷ 8; conversation memory ≈ 0.01 GB per billion parameters per 1,000 tokens; 1 GB working room; top speed ≈ memory bandwidth ÷ weights read per token. Real numbers vary by model and engine by 20% or more. Usable memory leaves room for the system (Macs about two thirds up to 36 GB, three quarters above). Device speeds are makers' figures and the sources in this lesson.</figcaption>
 </figure>
 <style>
   .wf-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }

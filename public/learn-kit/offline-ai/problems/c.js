@@ -1,5 +1,7 @@
 // Live problems for Offline AI, part c: Modules 7 (getting models), 8 (quantisation) and 9 (installing) (see ../problems.js).
 import { pick, steps, table } from './util.js';
+// macOS lets the graphics side use about two thirds of unified memory on Macs with 36 GB or less, about three quarters above.
+const macUse = (gb) => gb * (gb <= 36 ? 2 / 3 : 0.75), macPct = (gb) => (gb <= 36 ? 'two thirds' : 'three quarters');
 
 const fx = (v, d = 2) => (+v.toFixed(d)).toLocaleString('en-CA', { maximumFractionDigits: d });
 const int = (v) => v.toLocaleString('en-CA');
@@ -371,9 +373,9 @@ export default {
     title: 'top speed of a model on a Mac',
     make(r) {
       const mem = [16, 24, 32, 48, 64][pick(r, 0, 4)], bw = [120, 150, 200, 270, 400][pick(r, 0, 4)];
-      const S = pick(r, 2.5, Math.floor(mem * 0.75) - 2, 0.5), answer = bw / S;
+      const S = pick(r, 2.5, Math.floor(macUse(mem)) - 2, 0.5), answer = bw / S;
       return {
-        q: `<p>A Mac has ${mem} GB of unified memory that reads at ${bw} GB/s. You run a ${S} GB 4-bit model with MLX. It fits (three quarters of ${mem} is ${fx(mem * 0.75, 1)} GB). What is its top writing speed in tokens per second?</p>`,
+        q: `<p>A Mac has ${mem} GB of unified memory that reads at ${bw} GB/s. You run a ${S} GB 4-bit model with MLX. It fits (about ${macPct(mem)} of ${mem}, ${fx(macUse(mem), 1)} GB, can hold a model). What is its top writing speed in tokens per second?</p>`,
         answer, unit: 'tokens/s', tol: 0.01,
         hint: 'A dense model reads all its weights for each token. Top speed = bandwidth ÷ model size.',
         solution: steps(

@@ -2,9 +2,9 @@
 title: "How to make a passport photo at home and print it"
 summary: "How passport photo sizes, head height and print resolution fit together, with a worked example for a 2 x 2 inch photo on 4 x 6 inch and 10 x 15 cm paper."
 tools: [passport-photo, image-resizer, compress-file]
-updated: 2026-11-10
+updated: 2026-11-24
 sources:
-  - "Photo and head sizes are those built into the tool, each taken from an official page read on 2026-11-10: Canada (canada.ca), United States (travel.state.gov), United Kingdom (gov.uk) and India (Consulate General of India, Toronto photo specification; passportindia.gov.in for your own application). Rules change, so check the official source."
+  - "Photo and head sizes are those built into the tool, each taken from an official page read on 2026-11-10: Canada (canada.ca), United States (travel.state.gov), United Kingdom (gov.uk) and India (Consulate General of India, Toronto photo specification; ICAO photo guidelines of Indian missions from 1 September 2025, read 2026-11-24, https://eoimanila.gov.in/docs/Guidelines_for_ICAO_Compliant_Photographs_for_Passport_Applications.pdf; passportindia.gov.in for your own application). Rules change, so check the official source."
   - "1 inch = 25.4 mm (exact). Prints are made at 300 dots per inch."
 ---
 
@@ -17,7 +17,7 @@ A passport photo has two size rules: the size of the **print**, and the size of 
 - **Canada** (canada.ca): 50 × 70 mm, face 31 to 36 mm.
 - **United States** (travel.state.gov): 2 × 2 in (50.8 mm square), head 25 to 35 mm.
 - **United Kingdom** (gov.uk): 35 × 45 mm, head 29 to 34 mm.
-- **India** (Consulate General of India, Toronto; see passportindia.gov.in): 2 × 2 in, head 35 to 40 mm.
+- **India** (Indian missions' ICAO guidelines, from 1 September 2025; see passportindia.gov.in): a digital photo of exactly 630 × 810 pixels, white background, face 80 to 85% of the photo, which the tool saves directly (35 × 45 mm on a print sheet). The older 2 × 2 in size, head 35 to 40 mm, is still in the list for offices that ask for it.
 
 Rules change, and offices also judge light, expression and background. Always check the official source before you print.
 

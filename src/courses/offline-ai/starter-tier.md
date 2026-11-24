@@ -2,7 +2,7 @@
 title: 'Starter tier: a 16 GB graphics card or a 32 GB Mac'
 summary: The two most popular first purchases for local AI, with today's prices in India, Canada, the USA and the UK, and which one suits whom.
 minutes: 20
-updated: 2026-11-22
+updated: 2026-11-24
 sources:
   - 'RTX 5060 Ti 16 GB, India: gpuprix.com, lowest ₹44,767, three-month median ₹48,295, read 18 November 2026, https://gpuprix.com/india/gpus/geforce-rtx-5060-ti-16gb'
   - 'RTX 5060 Ti 16 GB, Canada: gpuprix.com Canada listings, lowest CA$1,170, three-month median CA$1,073, read 18 November 2026, https://gpuprix.com'
@@ -61,7 +61,7 @@ Prices read between 2 and 18 November 2026; sources are listed below this lesson
 Price alone misleads. Compare what you get for the money, the way you buy rice by the kilo and not by the bag. Here is the comparison with the US prices above:
 
 <div class="steps">
-<div class="step"><b>Usable memory.</b> The card gives about 15 GB to the model. A 32 GB Mac gives about 75%, so about 24 GB.</div>
+<div class="step"><b>Usable memory.</b> The card gives about 15 GB to the model. A 32 GB Mac gives about two thirds, so about 21 GB.</div>
 <div class="step"><b>Price per GB.</b> Card: US$429 ÷ 15 ≈ US$29 per GB. Mac: US$1,299 ÷ 24 ≈ US$54 per GB. The card is cheaper per GB.</div>
 <div class="step"><b>Speed on a model both can hold.</b> Gemma 4 12B (7.7 GB). Card: 448 ÷ 7.7 ≈ 58 tokens per second ceiling. Base Mac mini class (about 120 GB/s): 120 ÷ 7.7 ≈ 16.</div>
 <div class="step"><b>What only one can do.</b> A 27B model (about 16 GB at 4-bit) does not fit on the card. It does fit in the 32 GB Mac.</div>
@@ -77,7 +77,7 @@ Price alone misleads. Compare what you get for the money, the way you buy rice b
 <div class="meaning">
 
 <dl>
-<dt>Usable GB</dt><dd>The memory the model can actually use: about 15 of a 16 GB card, about 75% of a Mac's memory.</dd>
+<dt>Usable GB</dt><dd>The memory the model can actually use: about 15 of a 16 GB card, about two thirds of a Mac's memory (three quarters above 36 GB).</dd>
 <dt>Price per GB</dt><dd>How much each GB of usable fast memory costs. Lower is better value for fitting models.</dd>
 <dt>Speed per money</dt><dd>(bandwidth ÷ model GB) ÷ price: how many tokens per second each unit of money buys.</dd>
 <dt>Physical meaning</dt><dd>You are paying for two things: room to hold the model and speed to read it. The card sells speed cheaply; the Mac sells room, quiet and low power. Which is the bargain depends on which one you are short of.</dd>
@@ -87,7 +87,7 @@ Price alone misleads. Compare what you get for the money, the way you buy rice b
 
 <div class="myth">
 
-**"A 16 GB Mac and a 16 GB graphics card hold the same models."** The card gives nearly all its 16 GB to the model. The Mac shares its 16 GB with macOS and your apps, so only about 12 GB is usable. That is why this lesson says to skip the 16 GB Mac if you can.
+**"A 16 GB Mac and a 16 GB graphics card hold the same models."** The card gives nearly all its 16 GB to the model. The Mac shares its 16 GB with macOS and your apps, so only about 10 to 11 GB is usable (about two thirds). That is why this lesson says to skip the 16 GB Mac if you can.
 
 </div>
 
@@ -105,7 +105,7 @@ Price alone misleads. Compare what you get for the money, the way you buy rice b
 
 **Analogy:** buying rice by the kilo, not by the bag: a bigger bag can be the better deal.
 
-**Try it:** US$429 for 15 usable GB versus US$1,299 for about 24 usable GB? (About $29 per GB versus about $54 per GB. The card is cheaper per GB but needs a PC; the Mac is a whole computer.)
+**Try it:** US$429 for 15 usable GB versus US$1,299 for about 21 usable GB? (About $29 per GB versus about $61 per GB. The card is cheaper per GB but needs a PC; the Mac is a whole computer.)
 </details>
 
 ## 6. Worked example
