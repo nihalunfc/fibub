@@ -27,6 +27,12 @@ export default async (check) => {
     const n = r.A.length, P = r.poles.map((re) => ({ re, im: 0 }));
     check(`state space: random ${n}-state system: eigenvalues, singular values, K and L match`, close(S.eig(r.A).map((z) => [z.re, z.im]), r.eig, 1e-7) && close(S.singularValues(S.ctrb(r.A, r.B)), r.sv, 1e-9) && close(S.acker(r.A, r.B, P), r.K, 1e-6) && close(S.observerGain(r.A, r.C, P), r.L, 1e-6));
   });
+  { // New with the article gps-waypoint-following-robot-pole-placement-state-feedback-gains (Yoo and Chung 2026, Sensors 26: 255).
+    const Ar = [[-0.001, 0], [1, 0]], Br = [[1], [0]], Cr = [[0, 1]], Dr = [[0]];
+    const Kr = S.acker(Ar, Br, S.parsePoles('-0.7505±0.9679j')), Acl = S.add(Ar, S.mul(Br, [[1.5, 1.5]]), -1);
+    const Nr = 1 / S.dcGain(Acl, Br, Cr, Dr)[0][0], st = S.step(Acl, S.scale(Br, Nr), Cr, Dr, 11, 400), inf = S.stepInfo(st.t, st.y.map((r) => r[0]), 1);
+    check(`state space: GPS robot poles give K = [1.5, 1.50008]; K = [1.5, 1.5] overshoots ${inf.overshoot.toFixed(2)} % and settles in ${inf.settling.toFixed(2)} s`, Math.abs(Kr[0][0] - 1.5) < 1e-9 && Math.abs(Kr[0][1] - 1.50008066) < 1e-7 && Math.abs(inf.overshoot - 8.751) < 0.01 && Math.abs(inf.settling - 4.895) < 0.03);
+  }
   const err = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
   check('state space: uncontrollable system is refused', S.rank(S.ctrb([[-1, 0], [0, -2]], [[1], [0]])) === REF.rank_unc && /not controllable/.test(err(() => S.acker([[-1, 0], [0, -2]], [[1], [0]], [{ re: -3, im: 0 }, { re: -4, im: 0 }]))));
   check('state space: unobservable system is refused for the observer', /not observable/.test(err(() => S.observerGain([[-1, 0], [0, -2]], [[1, 0]], [{ re: -3, im: 0 }, { re: -4, im: 0 }]))));

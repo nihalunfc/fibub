@@ -43,4 +43,9 @@ export default async (check) => {
   { const t = P.pidTf({ kp: 1, ki: 2, kd: 3, tf: 0.1 }); check('pid: controller transfer function (3.1s² + 1.2s + 2)/(0.1s² + s)', t.num.map((x) => +x.toFixed(10)).join() === '3.1,1.2,2' && t.den.join() === '0.1,1,0'); }
   { const p = P.pade(1, 1); check('pid: first-order Padé (1 − s/2)/(1 + s/2)', p.num.join() === '-0.5,1' && p.den.join() === '0.5,1'); }
   { let threw = false; try { P.tfToSs({ num: [1, 0, 0], den: [1, 1] }); } catch { threw = true; } check('pid: improper plant is refused', threw); }
+  // New with the blog article on Daskin (2025), Processes 13: 749 (Example 1): e^(-0.5s)/(s+1) under PI control. The paper
+  // states 2 % settling times of 3.39 s (WGC, kp 1.0539, ki 1.1811) and 1.94 s (optimised, kp 0.9939, ki 0.9311).
+  { const pl = { tf: P.firstOrder(1, 1), delay: 0.5 }, ts = (kp, ki) => { const s = P.simulate(pl, { kp, ki, kd: 0, tf: 0 }, 15, { steps: 2000 }); return P.stepInfo(s.t, s.y, 1, 1, 0.02); };
+    const a = ts(1.0539, 1.1811), b = ts(0.9939, 0.9311);
+    check('pid: PI on e^(-0.5s)/(s+1) settles in 3.396 s and 1.942 s (paper 3.39 and 1.94), overshoot 11.5 % and 1.0 %', near(a.settle, 3.396, 0.005) && near(b.settle, 1.942, 0.005) && near(a.overshoot, 11.53, 0.05) && near(b.overshoot, 0.98, 0.05)); }
 };

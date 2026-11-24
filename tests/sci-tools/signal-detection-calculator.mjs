@@ -33,4 +33,8 @@ export default async (check) => {
   check('roc: G² 0.23978 on 3 df, p 0.97092', near(R.ml.g2, 0.2397849, 1e-4) && R.ml.df === 3 && near(R.ml.p, 0.970925, 1e-4));
   check('roc: chi-square tails (scipy chi2.sf)', near(chi2Sf(10, 4), 0.040427682) && near(chi2Sf(0.5, 7), 0.99944648) && near(chi2Sf(30, 3), 1.38005703e-6, 1e-6));
   check('roc: two categories give one point and no ML fit', roc([30, 20], [10, 40]).ml === null);
+  // New with the article on Velásquez-Salamanca et al. (2025), J. Imaging 11: 227: visual professionals' pooled table
+  // (AI images = signal): 1058 hits of 1704, 99 false alarms of 568. z(0.620892) − z(0.174296) = 0.307824 − (−0.937325), as Python statistics.NormalDist.
+  r = yesNo({ hits: 1058, misses: 646, fas: 99, crs: 469 }, 'none');
+  check('sdt: AI-image viewers d′ 1.245149, c 0.314750, SE 0.069187', near(r.dprime, 1.24514911) && near(r.c, 0.31475017) && near(r.se, 0.06918742));
 };

@@ -21,4 +21,8 @@ export default async (check) => {
   const c = analyse(d, 'mean');
   check('plant growth: classical RGR from ln of mean W', rel(c.intervals[0].rgr, 0.1506973952, 1e-8) && rel(c.whole.rgr, 0.1416681902, 1e-8) && Number.isNaN(c.intervals[0].rgrSe));
   check('plant growth: harvest means', harvests(d)[1].n === 4 && rel(harvests(d)[1].w, 0.34675, 1e-12));
+  // New with the taro article (Steel et al. 2026, Front. Plant Sci. 16: 1731490): RGR from harvest means, natural logs.
+  { const hm = (t, w) => ({ t, n: 1, w, la: 1, lw: NaN, lnW: Math.log(w), sdLnW: NaN, lar: 1 / w, sla: NaN, lwr: NaN });
+    const r = interval(hm(35, 4.91), hm(301.5, 168.72), 'mean').rgr;
+    check('plant growth: taro 4.91 g (day 35) to 168.72 g (day 301.5), RGR 0.01327 per day = ln 10 × the base-10 figure', rel(r, 0.0132717, 1e-4) && rel(r / (Math.log10(168.72 / 4.91) / 266.5), Math.LN10, 1e-12)); }
 };

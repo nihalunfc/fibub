@@ -39,4 +39,11 @@ export default async (check) => {
     check(`queue: simulation near the formulas for ${q.kind} (W ${s.W.toFixed(3)} vs ${r.W.toFixed(3)})`, Math.abs(s.W - r.W) <= 3 * s.WCI + 1e-3 * r.W && close(s.L, r.L, 0.1) && Math.abs(s.pBlock - r.pBlock) < 0.02 && Math.abs(s.pWait - r.pWait) < 0.02 && Math.abs(s.Wq - r.Wq) <= 3 * s.WqCI + 1e-3 * r.W);
   }
   { const a = simulate({ kind: 'mm1', lambda: 1, mu: 2 }, 2000, 9), b = simulate({ kind: 'mm1', lambda: 1, mu: 2 }, 2000, 9); check('queue: simulation repeatable with the same seed', a.W === b.W && a.customers === 2000); }
+  // New with the finite-buffer fuel station article (Raicu, Costescu and Popa 2025, AppliedMath 5: 17): 320 cars a day,
+  // 160 a day per pump, 6 waiting places, pump 600 a day. 2 pumps lose 11.76 %; best count 2 at v = 10, 3 at v = 20.
+  { const st = (n) => solveQueue({ kind: 'mmck', lambda: 320, mu: 160, c: n, K: n + 6 }), r2 = st(2);
+    const best = (v) => [1, 2, 3, 4, 5].reduce((b, n) => (v * st(n).lambdaEff - 600 * n > v * st(b).lambdaEff - 600 * b ? n : b), 1);
+    check('queue: fuel station M/M/2/8 loses 11.76 %, serves 282.4 a day; best pumps 2 (v 10) and 3 (v 20)', near(r2.pBlock, 0.11764705882352941, 1e-9) && Math.abs(r2.lambdaEff - 282.35) < 0.01 && best(10) === 2 && best(20) === 3);
+    const m = solveQueue({ kind: 'mmck', lambda: 0.9, mu: 1, c: 1, K: 3 });
+    check('queue: M/M/1/3 at load 0.9 loses 0.0729/0.3439', near(m.pBlock, 0.0729 / 0.3439, 1e-12)); }
 };

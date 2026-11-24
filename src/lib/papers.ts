@@ -3,7 +3,7 @@
 // Shown at /blog/papers/ (paged) and downloadable as /blog/papers.csv.
 import { allArticles, kindOf, articleUrl } from './blog';
 
-export const PAPERS_PER_PAGE = 100;
+export const PAPERS_PER_PAGE = 75;
 export const papersPageUrl = (n: number) => (n <= 1 ? '/blog/papers/' : `/blog/papers/page/${n}/`);
 
 export type PaperRow = {

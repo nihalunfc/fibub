@@ -23,4 +23,8 @@ export default async (check) => {
   check('mark-recapture: Schnabel with ΣR ≥ 50 uses t limits 356.28 to 538.03', t.method === 't' && close(t.N, 428.6875) && close(t.lo, 356.2828635) && close(t.hi, 538.0265039));
   let threw = false; try { schnabel([{ C: 10, R: 2 }, { C: 5, R: 1 }]); } catch { threw = true; }
   check('mark-recapture: recaptures before any marks are rejected', threw);
+  // New with the Pachón cavefish article (Espinasa et al. 2024, Fishes 9: 334): DNA mark-recapture counts from the paper's text.
+  { const a = twoSample(29, 29, 3), b = twoSample(35, 55, 3);
+    check('mark-recapture: Pachón main pool 29/29/3, Chapman 224, log-normal 120.2 to 493.0', close(a.chapman, 224) && close(a.lo, 120.2, 1e-3) && close(a.hi, 493.0, 1e-3) && a.seen === 55 && !a.enough);
+    check('mark-recapture: Pachón system 35/55/3, Chapman 503, log-normal 254.0 to 1123.5', close(b.chapman, 503) && close(b.lo, 254.0, 1e-3) && close(b.hi, 1123.5, 1e-3)); }
 };

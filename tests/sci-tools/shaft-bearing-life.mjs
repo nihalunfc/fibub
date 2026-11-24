@@ -16,4 +16,8 @@ export default async (check) => {
   check('shaft: closed form and stress form agree', near(S.goodmanN(S.goodmanD(2.2, L, 210, 700), L, 210, 700), 2.2, 1e-12));
   check('shaft: static von Mises and Tresca diameters (SciPy 18.7941, 19.1184 mm)', near(S.misesD(150, 120, 560, 2), 18.79409410094698, 1e-10) && near(S.trescaD(150, 120, 560, 2), 19.11840918599489, 1e-10));
   { const r = S.shaftStresses(30, { Ma: 100, Mm: 0, Ta: 0, Tm: 0, Kf: 1, Kfs: 1 }); check('shaft: pure bending σ = 32M/πd³', near(r.sa, 32e3 * 100 / (Math.PI * 27000)) && r.sm === 0); }
+  // New with the blog article on Sauvage et al. (2025), Lubricants 13: 65: a load-rating reduction factor eta of 0.85 or
+  // 0.91 cuts a roller bearing's L10 by 42 % or 27 % (paper), and our worked thrust bearing (C 2000 kN, P 500 kN, 150 rpm).
+  check('shaft: eta 0.85 and 0.91 cut roller L10 by 41.83 % and 26.98 % (paper 42 % and 27 %)', near(1 - S.L10(0.85, 1, 10 / 3), 0.418259, 1e-5) && near(1 - S.L10(0.91, 1, 10 / 3), 0.269750, 1e-5));
+  check('shaft: thrust example 2000, 1700, 1820 kN at 500 kN, 150 rpm: 11288, 6567, 8243 h', [[2000, 11288], [1700, 6567], [1820, 8243]].every(([C, h]) => Math.abs(S.hours(S.L10(C, 500, 10 / 3), 150) - h) < 0.5));
 };

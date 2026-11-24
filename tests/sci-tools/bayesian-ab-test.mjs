@@ -27,4 +27,8 @@ export default async (check) => {
   check('bayes: n = 0 leaves the prior unchanged', (() => { const d = Y.updateNormal(5, 2, 0, NaN, 1); return d.p1 === 5 && d.p2 === 2; })());
   let threw = 0; for (const f of [() => Y.abTest(5, 4, 1, 10), () => Y.abTest(1, 0, 1, 10), () => Y.abTest(1, 10, 1, 2e6), () => Y.updateBeta(0, 1, 1, 2), () => Y.updateGamma(1, 1, 2.5, 3), () => Y.updateNormal(0, -1, 3, 1, 1)]) { try { f(); } catch { threw++; } }
   check('bayes: bad input throws plain errors', threw === 6);
+  // New with the check-up reminder framing article (Maltz et al. 2024, JMIR Public Health Surveill 10: e45379): counts
+  // rebuilt from the paper's rates, neutral 716/5075 against recommendation 641/4890, flat priors.
+  { const r = Y.abTest(716, 5075, 641, 4890);
+    check('bayes: check-up framing, P(B > A) 0.0729, difference -1.00 pp (-2.35 to 0.35), neutral 13.18 % to 15.09 %', Math.abs(r.pB - 0.0729) < 5e-5 && Math.abs(r.diffMean * 100 + 0.999) < 0.001 && Math.abs(r.diffCi[0] * 100 + 2.35) < 0.005 && Math.abs(r.diffCi[1] * 100 - 0.348) < 0.001 && Math.abs(r.ciA[0] * 100 - 13.18) < 0.005 && Math.abs(r.ciA[1] * 100 - 15.09) < 0.005); }
 };

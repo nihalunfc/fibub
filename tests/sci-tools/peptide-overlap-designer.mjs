@@ -1,4 +1,5 @@
 // #201 Peptide overlap designer: peptide spans, masses, synthesis flags, the guaranteed epitope length and matrix
+import { peptideMass } from '../../src/lib/sci/peptide.ts';
 // pools checked against an independent Python version (pyteomics for monoisotopic and average masses, Biopython
 // ProteinAnalysis within 0.05 Da, brute-force window and pool searches) on the example
 // protein with three settings and five random proteins (one with planted CC, DP, NG and Q).
@@ -40,4 +41,13 @@ export default async (check) => {
     check('overlap: example R3 + C4,C5 -> P014 and P015, sharing residues 57-67 (IVALLFAGIVM)', d.cand.join() === '13,14' && d.runs.length === 1 && d.runs[0].shared === 'IVALLFAGIVM' && d.runs[0].start === 57 && d.runs[0].end === 67);
     const e = deconvolve(pp, m, [0, 5], [2]);
     check('overlap: a positive pool with no peptide at a crossing is reported (R6 x C3 is empty)', e.cand.join() === '2' && e.lonelyRows.join() === '5'); }
+  // Balasubramanian et al. (2025), Front. Immunol. 16: 1641289: AAV9 VP1 (736 residues, UniProt Q6JC40) cut into
+  // 15-mers with an 11-residue overlap gives the paper's 182 peptides, and its 41 pooled peptides give 13 pools.
+  {
+    const s = tile(736, 15, 4, true), sn = tile(736, 15, 4, false), m = matrix(41);
+    check('overlap: AAV9 VP1 (736 aa) in 15-mers stepping 4 gives 182 peptides, last 722-736, 181 without the closing peptide', s.length === 182 && s.at(-1).start === 722 && s.at(-1).end === 736 && sn.length === 181 && sn.at(-1).end === 735 && guaranteedSpan(736, s) === 12);
+    check('overlap: 41 peptides lay out as 7 x 6 = 13 pools, each peptide in two', m.pools === 13 && m.rows === 7 && m.cols === 6 && m.cell.length === 41 && m.rowPools.flat().length === 41 && m.colPools.flat().length === 41);
+    const p = peptideMass('FQFSYEFENV');
+    check('overlap: the paper’s epitope FQFSYEFENV weighs 1308.5663 Da monoisotopic, 1309.398 average', Math.abs(p.mono - 1308.5663) < 5e-4 && Math.abs(p.avg - 1309.398) < 5e-3);
+  }
 };

@@ -17,4 +17,7 @@ export default async (check) => {
   check('dimless: channel Fr 1.355 is supercritical', near(ch.value, 3 / Math.sqrt(9.80665 * 0.5)) && ch.note.startsWith('supercritical'));
   const fast = dimensionless({ ...a, U: 700, L: 1, geometry: 'other' }).find((x) => x.id === 'ma');
   check('dimless: Mach 2.04 is supersonic', fast.note === 'supersonic');
+  // Blog: trionda-world-cup-ball-drag-crisis-critical-reynolds-number-range (22 cm ball, ρ 1.2, ν 1.55e-5).
+  const ball = (U) => dimensionless({ ...a, rho: 1.2, mu: 1.86e-5, U, L: 0.22, geometry: 'sphere' })[0];
+  check('dimless: football at 11.9 m/s Re = 168903 (Newton regime), at 21.9 m/s Re = 310839 (drag crisis)', near(ball(11.9).value, 168903.2258064516, 1e-12) && ball(11.9).note.startsWith('Newton') && near(ball(21.9).value, 310838.7096774194, 1e-12) && ball(21.9).note === 'drag crisis region');
 };

@@ -20,4 +20,10 @@ export default async (check) => {
   const cold = densityAlt(1013.25, -20, null);
   check('density alt: cold air at sea level gives a negative density altitude', cold.da < -1000 && near(cold.rhoPct, 113.8, 0.1));
   check('density alt: standard day density altitude equals pressure altitude', near(densityAlt(isa(2000).p, isa(2000).t - 273.15, null).da, 2000, 1e-6));
+  // New with the article on A320 take-off distance at European airports (Williams et al. 2025): at ISA sea level one
+  // kelvin of warming adds 36.07 m of density altitude and one hPa of pressure 10.28 m, so 3.51 hPa match 1 K; 30 °C
+  // with a 20 °C dew point is 615.5 m, humidity adding 90.0 m.
+  { const d = (p, t, td = null) => densityAlt(p, t, td).da;
+    check('density alt: 1 K = 36.07 m, 1 hPa = 10.28 m at ISA sea level (3.51 hPa per K)', near(d(1013.25, 16), 36.07, 0.01) && near(-d(1014.25, 15), 10.28, 0.01) && near(d(1013.25, 16) / -d(1014.25, 15), 3.51, 0.005));
+    check('density alt: 30 °C at 1013.25 hPa is 525.5 m dry, 615.5 m with dew point 20 °C', near(d(1013.25, 30), 525.46, 0.01) && near(d(1013.25, 30, 20), 615.50, 0.01)); }
 };

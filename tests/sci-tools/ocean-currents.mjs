@@ -41,4 +41,10 @@ export default async (check) => {
   check('dynamic height: ΔD = −0.2 dyn m → v = −2/(f L)', close(dyn[0].v, -2 / (coriolis(40) * 50000), 1e-12) && dyn[1].v === 0);
   const bad = readSection('depth,a,b\n0,1,2\n-5,1,2\n10,x,2\n0,3,3');
   check('section: negative depth, bad numbers and repeated depths explained', bad.errors.length === 3 && bad.errors[0].includes('positive downwards') && bad.errors[1].includes('three numbers') && bad.errors[2].includes('only once'));
+  // New with the article on Lake Biwa internal waves (Koue 2025, Water 17: 2905): at 35.2° N, H = 44 m, ρ0 = 1000 kg/m³,
+  // the paper's seasons give g' 7.456e-3, 2.649e-2, 6.867e-3 m/s² and wave speeds 0.240, 0.512, 0.274 m/s (paper 0.240,
+  // 0.511, 0.273); Rossby radii 2.86, 6.09, 3.26 km; inertial period 2π/f = 20.76 h (paper: about 21 h).
+  { const sp = rossby(35.2, 44, 10, 0.76, 1000, 0), su = rossby(35.2, 44, 15, 2.7, 1000, 0), au = rossby(35.2, 44, 20, 0.70, 1000, 0);
+    check('Rossby: Lake Biwa seasons give the paper\'s g\' and wave speeds', close(sp.gPrime, 7.456e-3, 1e-6) && close(su.gPrime, 2.649e-2, 1e-5) && close(au.gPrime, 6.867e-3, 1e-6) && close(sp.cBaroclinic, 0.240, 5e-4) && close(su.cBaroclinic, 0.5117, 1e-4) && close(au.cBaroclinic, 0.2737, 1e-4));
+    check('Rossby: Lake Biwa internal radii 2.86, 6.09, 3.26 km; inertial period 20.76 h at 35.2° N', close(sp.twoLayer, 2855, 1) && close(su.twoLayer, 6087, 1) && close(au.twoLayer, 3256, 1) && close(2 * Math.PI / coriolis(35.2) / 3600, 20.76, 0.005)); }
 };

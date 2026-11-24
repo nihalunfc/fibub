@@ -1,6 +1,7 @@
 // #336 forest inventory plot summary. Reference values from an independent pandas/SciPy calculation (7 plots of
 // 400 m², the made-up example tally plus one empty plot).
 import { inventory } from '../../src/lib/sci/inventory.ts';
+import { diameterFromBA } from '../../src/lib/sci/treeheight.ts';
 export default async (check) => {
   const near = (a, b, t = 1e-9) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b));
   const rows = '1,Birch,12.9,9.7|1,Pine,21.1,12.9|1,Birch,12.0,9.2|1,Pine,30.5,15.6|1,Pine,27.8,14.9|1,Birch,12.2,|1,Birch,7.5,6.8|1,Spruce,21.6,13.1|1,Spruce,7.5,|2,Spruce,20.7,12.8|2,Pine,29.0,15.3|2,Spruce,26.4,14.6|2,Pine,34.2,16.5|2,Pine,28.8,15.2|2,Birch,14.3,|2,Pine,34.0,16.4|2,Birch,22.0,13.2|3,Pine,32.0,16.0|3,Birch,13.7,|3,Spruce,15.9,|3,Spruce,20.8,12.8|3,Pine,26.6,14.6|4,Birch,8.7,|4,Pine,14.1,|4,Pine,36.8,|4,Birch,12.5,9.5|4,Pine,25.0,14.2|5,Birch,13.2,9.8|5,Pine,24.9,14.1|5,Pine,27.8,14.9|5,Spruce,26.3,|5,Pine,19.0,12.2|6,Pine,13.8,|6,Pine,29.1,|6,Pine,23.6,|6,Pine,26.8,|6,Birch,16.1,|'.split('|').filter(Boolean).map((l) => l.split(','));
@@ -14,4 +15,7 @@ export default async (check) => {
   check('inventory: by species (Pine)', near(pine.stems.mean, 67.85714285714286) && near(pine.ba.mean, 3.9607320830854844) && near(pine.ba.se, 0.8710823071609486) && near(pine.qmd, 27.261202429363546) && near(pine.shareBA, 0.7353260677110999));
   const ref = { 5: 10.714285714285714, 10: 32.142857142857146, 15: 10.714285714285714, 20: 25, 25: 35.714285714285715, 30: 14.285714285714286, 35: 3.5714285714285716 };
   check('inventory: 5 cm diameter classes, stems/ha', r.classes.length === 7 && r.classes.every((c) => near(c.total, ref[c.lo])));
+  // New with the miombo article (Manjate et al. 2025, Forests 16: 569): QMD from stems and basal area per hectare.
+  check('inventory: miombo stand 255 stems and 15.43 m²/ha gives QMD 27.76 cm; 42 % of stems with 58 % of BA gives 32.62 cm',
+    near(diameterFromBA(15.43 / 255, 'metric'), 27.7567, 1e-5) && near(diameterFromBA((15.43 * 0.58) / (255 * 0.42), 'metric'), 32.618, 1e-5));
 };

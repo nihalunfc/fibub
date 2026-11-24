@@ -24,4 +24,8 @@ export default async (check) => {
   check('lotka: competition outcomes from isocline intercepts', competeOutcome(c) === 'coexist' && competeOutcome({ ...c, a21: 1.2 }) === 'one' && competeOutcome({ ...c, a12: 1.5 }) === 'two' && competeOutcome({ ...c, a12: 1.5, a21: 1.2 }) === 'either');
   const ee = competeEquilibria({ ...c, a12: 1.5, a21: 1.2 }).find((q) => q.name === 'Coexistence');
   check('lotka: founder control makes coexistence a saddle', ee && ee.kind === 'saddle');
+  // New with the article on green algae and cyanobacteria (Wang et al. 2025, FACETS): K 23.8 and 9.8, α12 1.87, α21 0.094.
+  const alg = { r1: 0.071, r2: 0.19, K1: 23.8, K2: 9.8, a12: 1.87, a21: 0.094 }, ea = competeEquilibria(alg).find((q) => q.name === 'Coexistence'), sa = rk4(compete(alg), 1, 1, 400, 4000);
+  check('lotka: algae competition coexists at (6.6414, 9.1757), stable node, slow eigenvalue -0.01599', ea && close(ea.x, 6.641431, 1e-5) && close(ea.y, 9.175706, 1e-5) && ea.kind === 'stable node' && close(ea.eig[0].re, -0.015989, 1e-3) && Math.abs(sa.x[4000] - 6.616) < 0.001 && Math.abs(sa.y[4000] - 9.178) < 0.001);
+  check('lotka: algae coefficients swapped make green algae win', competeOutcome({ ...alg, a12: 0.094, a21: 1.87 }) === 'one');
 };

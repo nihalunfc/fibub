@@ -25,4 +25,11 @@ export default async (check) => {
   const t = sampleLogN(R('wide'), 1000, 9), u = sampleLogN(R('wide'), 1000, 9);
   check('drake same seed, same draws', t.every((v, i) => v === u[i]));
   near('drake quantile like numpy', quantile([1, 2, 3, 4], 0.5), 2.5, 1e-15);
+  // Stern and Gerya (2024, Sci. Rep. 14, 8552): Drake's 1961 ranges, then fi = foc·fpt = 0.000034–0.0017 (foc 0.0002–0.01, fpt 0.17).
+  const d61 = [[1, 1], [0.2, 0.5], [1, 5], [1, 1], [1, 1], [0.1, 0.2], [1e3, 1e8]].map(([lo, hi]) => ({ lo, hi }));
+  const sg = d61.map((r, i) => (i === 4 ? { lo: 0.000034, hi: 0.0017 } : r));
+  near('drake 1961: middle estimate is 10^4.5', pointN(d61), 31622.776601683796, 1e-6);
+  near('drake 1961: P(N < 1000) = 0.2', exactCdf(d61, 3), 0.2, 1e-9);
+  near('drake Stern-Gerya: middle estimate', pointN(sg), 7.602631123499286, 1e-9);
+  near('drake Stern-Gerya: P(N < 1) exact (2e5-draw Monte Carlo 0.3247)', exactCdf(sg, 0), 0.32380721615794655, 1e-9);
 };

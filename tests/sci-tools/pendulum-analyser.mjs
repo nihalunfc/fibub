@@ -16,4 +16,6 @@ export default async (check) => {
   check('pendulum: intercept 0.000631 ± 0.01367 s², R² 0.999924', near(f.intercept, 0.0006305647504500911, 1e-6) && near(f.uIntercept, 0.01366602675167006, 1e-8) && near(f.r2, 0.9999237101925318, 1e-10));
   check('pendulum: length offset 0.157 ± 3.40 mm (covariance propagation)', near(f.offset, 0.00015695758936832644, 1e-6) && near(f.uOffset, 0.003402307359605478, 1e-8));
   check('pendulum: without the amplitude correction g is 9.741', near(fitG(L, T).g, 9.741061725219582, 1e-10));
+  // Blog: webcam-pendulum-tracker-period-gravity-amplitude-correction (45.8 cm, measured 1.3630 s, g 9.7821671).
+  check('pendulum: 45.8 cm at 11.5° and g 9.7821671 swings in 1.36298 s (factor 1.0025237)', near(smallPeriod(0.458, 9.7821671) * largeFactor(11.5), 1.3629807068426756, 1e-10) && near(largeFactor(11.5), 1.0025236800344326, 1e-12));
 };

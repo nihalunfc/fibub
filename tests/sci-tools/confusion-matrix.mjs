@@ -43,4 +43,8 @@ export default async (check) => {
   check('confusion-matrix: a non-number cell is refused', msg.includes('count'));
   const plain = parseMatrix([['5', '1'], ['2', '7']]);
   check('confusion-matrix: matrix without names gets Class 1, Class 2', plain.labels.join() === 'Class 1,Class 2');
+  // New with the LLM abstract screening article (Colangelo et al. 2025, BioMedInformatics 5: 25): Claude 3 Haiku,
+  // verbose prompt, most similar quartile, rebuilt as 9 TP, 0 FN, 47 FP, 144 TN; and a screener that rejects everything.
+  { const M = metrics(['target', 'other'], [[9, 0], [47, 144]]), b = binary(9, 0, 47, 144), Z = metrics(['target', 'other'], [[0, 9], [0, 191]]);
+    check('confusion-matrix: LLM screening Q4 precision 9/56 (Wilson 8.7 to 27.8 %), accuracy 76.5 %, MCC 0.348; reject-all 95.5 % with MCC 0', close(b.ppv, 9 / 56) && Math.abs(b.ppvCI[0] - 0.0870) < 5e-4 && Math.abs(b.ppvCI[1] - 0.2781) < 5e-4 && close(M.accuracy, 0.765) && Math.abs(M.mcc - 0.348) < 5e-4 && close(Z.accuracy, 0.955) && Z.mcc === 0); }
 };

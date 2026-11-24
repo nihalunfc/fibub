@@ -22,4 +22,7 @@ export default async (check) => {
   { const pb = passBy(700, c, 25, 20, 4); check('pass-by samples lie on the exact curve', pb.every((p) => Math.abs(heardAt(700, c, 25, 20, p.t) - p.f) < 1e-8)); }
   check('Mach 2: cone half-angle 30°', near(mach(2 * c, c).angle, 30, 1e-12) && Number.isNaN(mach(100, c).angle));
   check('beats: 440 and 443 Hz beat 3 times a second', beats(440, 443).fb === 3 && near(beats(440, 443).period, 1 / 3) && beats(440, 443).mean === 441.5);
+  // New with the smartphone binary-star article (Di Laccio et al. 2021): phone 1 at 0.60 m × 15.3 s⁻¹ = 9.18 m/s.
+  check('phone 4000 Hz at 9.18 m/s, 20 °C air: 4109.93 Hz towards, 3895.80 Hz away', Math.abs(soundDoppler(4000, c, 9.18, 0) - 4109.93) < 0.005 && Math.abs(soundDoppler(4000, c, -9.18, 0) - 3895.80) < 0.005);
+  check('measured 4110 Hz from a 4000 Hz phone: 9.186 m/s towards', Math.abs(sourceSpeed(4000, 4110, c) - 9.1858) < 5e-4);
 };

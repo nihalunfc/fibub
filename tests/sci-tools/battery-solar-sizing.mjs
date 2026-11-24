@@ -17,6 +17,11 @@ export default async (check) => {
   { const x = runtime({ capAh: 100, V: 12, load: 120, loadUnit: 'W', eff: 1, dod: 1, peukert: 1, ratedH: 20 }); check('battery-solar-sizing: 1200 Wh at 120 W is 10 h with k = 1', close(x.tSimple, 10) && close(x.tPeukert, 10) && close(x.rateC, 0.1)); }
   { const x = runtime({ capAh: 100, V: 12, load: 5, loadUnit: 'A', eff: 0.5, dod: 1, peukert: 1.3, ratedH: 20 }); check('battery-solar-sizing: at the rated current Peukert gives the rated time; A loads ignore efficiency', close(x.tPeukert, 20) && close(x.Ibat, 5)); }
   { const a = runtime({ capAh: 100, V: 12, load: 600, loadUnit: 'W', eff: 1, dod: 1, peukert: 1.2, ratedH: 20 }); check('battery-solar-sizing: high current shortens Peukert runtime', a.tPeukert < a.tSimple && a.capEff < 100); }
+  { // New with the article off-grid-solar-ethiopia-tier-3-household-pv-battery-sizing (Lidate et al. 2026, Energies 19: 3454).
+    const T3 = { loads: [{ name: 'Tier 3 home', W: 1700, h: 1, n: 1 }], psh: 4.8, losses: 0.15, battEff: 1, days: 3, dod: 0.85, Vsys: 12, panelW: 130, battV: 12, battAh: 250, safety: 1.25 };
+    const a = solar({ ...T3, invEff: 0.87 }), b = solar({ ...T3, invEff: 1 });
+    check('battery-solar-sizing: Tier 3 Ethiopia home needs 478.9 W, four 130 W modules; 3-day bank at 85 % is 500 Ah (2 × 250 Ah)', Math.abs(a.arrayW - 478.93) < 0.01 && a.panels === 4 && Math.abs(b.bankAh - 500) < 1e-9 && b.parallel === 2 && Math.abs(b.arrayW - 416.67) < 0.01);
+  }
   let threw = false; try { solar({ loads: [{ name: 'x', W: 10, h: 30, n: 1 }], invEff: 0.9, psh: 4, losses: 0.2, battEff: 0.9, days: 1, dod: 0.5, Vsys: 12, panelW: 100, battV: 12, battAh: 100, safety: 1.25 }); } catch { threw = true; }
   check('battery-solar-sizing: more than 24 hours a day refused', threw);
 };

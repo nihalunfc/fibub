@@ -9,6 +9,12 @@ export default async (check) => {
   const r = M.marginOfExposure(0.3, sc, 100, { conc: 'µg/kg', intake: 'g/day', dose: 'mg/kg bw/day' });
   check('moe: example by hand (MOE 2100, 700, 400; tolerable 0.003)', sc.length === 3 && close(r.rows[0].moe, 2100) && close(r.rows[1].moe, 700) && close(r.rows[2].moe, 400) && close(r.rows[0].exposure, 0.01 / 70) && close(r.tolerable, 0.003) && r.lowest.name === 'Child, high' && r.rows.every((x) => x.meets));
   check('moe: concentration that just meets the target (child: 0.003 × 20 ÷ 0.3 kg = 0.2 mg/kg = 200 µg/kg)', close(r.rows[2].maxConc, 200));
+  // Aflatoxins in a Singapore total diet study (Toxins 2025, 17: 324): BMDL10 0.17 µg/kg bw/day, satay sauce
+  // 0.83 µg/kg eaten at 3.894 g per kg bw per day, and the same intake at the 0.05 µg/kg limit of quantification.
+  const afl = (conc) => M.marginOfExposure(0.17, [{ name: 'satay', conc, intake: 3.894, bw: 1 }], 10000, { conc: 'µg/kg', intake: 'g/day', dose: 'µg/kg bw/day' }).rows[0];
+  const a1 = afl(0.83), a2 = afl(0.05);
+  check('moe: aflatoxin satay sauce scenario (exposure 0.0032320 µg/kg bw/day, MOE 52.5987, 0.0043657 µg/kg meets 10000)', close(a1.exposure, 0.00323202, 1e-6) && close(a1.moe, 52.5987, 1e-5) && close(a1.maxConc, 0.00436569, 1e-5) && !a1.meets);
+  check('moe: same intake at the limit of quantification gives MOE 873.138', close(a2.moe, 873.138, 1e-5));
   const r2 = M.marginOfExposure(0.3, sc, 10000, { conc: 'µg/kg', intake: 'g/day', dose: 'mg/kg bw/day' });
   check('moe: target 10000 not met', r2.rows.every((x) => !x.meets));
   let ok = true;

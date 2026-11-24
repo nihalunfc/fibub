@@ -30,4 +30,10 @@ export default async (check) => {
   check('nash: 2x2 zero-sum closed form (value 1/7, x = 3/7, y = 2/7)', Math.abs(zs.value - 1 / 7) < 1e-12 && Math.abs(zs.x[0] - 3 / 7) < 1e-12 && Math.abs(zs.y[0] - 2 / 7) < 1e-12);
   const all0 = supportEnumeration([[0, 0], [0, 0]], [[0, 0], [0, 0]]);
   check('nash: a game of all zeros lists the four pure profiles as extreme equilibria', all0.length === 4 && all0.every((q) => q.pure));
+  // New with the article on Leng, Lian, Lien and Zheng (2023), Behav. Sci. 13: 757: asymmetric matching pennies in yuan.
+  // By hand: the column mix makes the row player indifferent, a·yL + 0.4·yR = 0.4·yL + 0.8·yR, so yR = (a − 0.4)/a.
+  { const g = (a) => supportEnumeration([[a, 0.4], [0.4, 0.8]], [[0.4, 0.8], [0.8, 0.4]]);
+    const h = g(3.2), l = g(0.44);
+    check('nash: asymmetric matching pennies, higher type: one equilibrium, T 1/2, R 7/8, payoffs 0.75 and 0.6', h.length === 1 && close(h[0].x, [0.5, 0.5]) && close(h[0].y, [1 / 8, 7 / 8]) && Math.abs(h[0].u - 0.75) < 1e-12 && Math.abs(h[0].v - 0.6) < 1e-12);
+    check('nash: asymmetric matching pennies, lower type: T 1/2, R 1/11, row payoff 4.8/11', l.length === 1 && close(l[0].x, [0.5, 0.5]) && close(l[0].y, [10 / 11, 1 / 11]) && Math.abs(l[0].u - 4.8 / 11) < 1e-12); }
 };

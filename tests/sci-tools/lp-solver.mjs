@@ -47,4 +47,13 @@ export default async (check) => {
   let ok = 0;
   for (const [text, st, obj] of RANDOM) { const r = solve(parseModel(text)); if (r.status === st && (st !== 'optimal' || near(r.obj, obj))) ok++; else console.log('lp random mismatch', text, r.status, r.obj, st, obj); }
   check(`lp: ${ok}/${RANDOM.length} random models match SciPy (status and objective)`, ok === RANDOM.length);
+  // New with the article on Zhang and Morsky (2025), Games 16: 59: their 4 x 3 bimatrix game. Classical column maximin
+  // −3984/119 = −33.479 with q = (73/119, 0, 46/119); the row player's generalised minimax LP at requirement −53.89
+  // gives −31.736 with p ≈ (0.102, 0.133, 0.765, 0) and duals (0.544, 0, 0.456), the paper's −31.73 and q ≈ (0.54, 0, 0.46).
+  { const B = [[13, -33, -63], [-76, -90, 34], [-30, -63, -39], [85, -33, -24]], A = [[-62, 44, 62], [-42, 4, 62], [24, -77, -68], [28, 80, 53]];
+    const t = (c) => (c < 0 ? `- ${-c}` : `+ ${c}`);
+    const cm = solve(parseModel('max v: v\nst\n' + B.map((r) => r.map((b, j) => `${t(b)} q${j + 1}`).join(' ') + ' - v >= 0').join('\n') + '\nq1 + q2 + q3 = 1\nfree v'));
+    check('lp: Zhang-Morsky game, classical column maximin -3984/119 at q1 = 73/119, q3 = 46/119', near(cm.obj, -3984 / 119) && near(cm.x[1], 73 / 119) && near(cm.x[3], 46 / 119));
+    const g = solve(parseModel('min w: w\nst\n' + [0, 1, 2].map((j) => B.map((r, i) => `${t(r[j])} p${i + 1}`).join(' ') + ' - w <= 0').join('\n') + '\n' + [0, 1, 2].map((j) => A.map((r, i) => `${t(r[j])} p${i + 1}`).join(' ') + ' >= -53.89').join('\n') + '\np1 + p2 + p3 + p4 = 1\nfree w'));
+    check('lp: Zhang-Morsky generalised minimax -31.7357, p = (0.1019, 0.1330, 0.7650, 0), duals 0.5436, 0, 0.4564', near(g.obj, -31.7357, 1e-5) && [0.1019, 0.133, 0.765, 0].every((v, i) => Math.abs(g.x[i + 1] - v) < 6e-4) && [0.5436, 0, 0.4564].every((v, j) => Math.abs(-g.shadow[j] - v) < 6e-4)); }
 };

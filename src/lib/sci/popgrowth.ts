@@ -46,7 +46,8 @@ export function leslie(F: number[], P: number[]): Leslie {
   const l = [1]; for (let i = 1; i < n; i++) l.push(l[i - 1] * P[i - 1]);
   if (!F.some((f, i) => f * l[i] > 0)) throw new Error('No class that animals survive to has any offspring, so the population cannot grow or persist.');
   // Characteristic equation: Σ_{i<n} F_i l_i λ^-i + F_n l_n λ^-n / (1 − s/λ) = 1, decreasing in λ for λ > s.
-  const g = (L: number) => { let t = 0; for (let i = 0; i < n - 1; i++) t += F[i] * l[i] * L ** -(i + 1); t += (F[n - 1] * l[n - 1] * L ** -n) / (1 - s / L); return t - 1; };
+  // Classes with no offspring are skipped, so a tiny trial λ (λ^-i overflowing to Infinity with 25+ classes) never gives 0 × Infinity = NaN.
+  const g = (L: number) => { let t = 0; for (let i = 0; i < n - 1; i++) if (F[i] * l[i] > 0) t += F[i] * l[i] * L ** -(i + 1); if (F[n - 1] * l[n - 1] > 0) t += (F[n - 1] * l[n - 1] * L ** -n) / (1 - s / L); return t - 1; };
   let lo = s + 1e-12 * Math.max(1, s), hi = Math.max(1, s * 2);
   if (!(g(lo) > 0)) throw new Error('The survival in the last class alone sets the growth rate here (the classes before it cannot replace themselves), so this is not a usable Leslie matrix.');
   while (g(hi) > 0) hi *= 2;

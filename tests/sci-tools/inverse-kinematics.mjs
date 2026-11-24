@@ -23,5 +23,10 @@ export default async (check) => {
   check('ik: reach annulus', JSON.stringify(K.reach2(1, 0.8)) === JSON.stringify({ rMin: 0.19999999999999996, rMax: 1.8 }));
   { const s = K.ik2(1, 0.8, 1.2, 0.6), lim = [[-Math.PI / 2, Math.PI], [-150 / 57.29577951308232, 0]];
     check('ik: joint limits keep elbow up and reject elbow down', K.limitBreaks(s[0].q, lim).length === 0 && JSON.stringify(K.limitBreaks(s[1].q, lim)) === '[1]'); }
+  { // New with the article two-link-robot-arm-inverse-kinematics-routh-stability-limit (Kirkopoulos et al. 2026, Eng. Proc. 143: 59).
+    const dg = (v) => (v * 180) / Math.PI, s = K.ik2(2, 1, 1.67, 2.38), tip = K.fk([2, 1], [Math.PI / 4, Math.PI / 6]).pts[2], e = K.ik2(2, 1, tip[0], tip[1]);
+    const dn = s.find((x) => x.elbow === 'down'), up = s.find((x) => x.elbow === 'up'), de = e.find((x) => x.elbow === 'down');
+    check('ik: 2 m + 1 m arm to (1.67, 2.38) gives 44.948°/30.308° and 64.939°/−30.308°; the unrounded tip gives 45°/30°', Math.abs(dg(dn.q[0]) - 44.948) < 5e-4 && Math.abs(dg(dn.q[1]) - 30.308) < 5e-4 && Math.abs(dg(up.q[0]) - 64.939) < 5e-4 && Math.abs(dg(up.q[1]) + 30.308) < 5e-4 && Math.abs(dg(de.q[0]) - 45) < 1e-9 && Math.abs(dg(de.q[1]) - 30) < 1e-9);
+  }
   check('ik: angles wrap into (−180°, 180°]', K.wrap(3 * Math.PI) === Math.PI && Math.abs(K.wrap(-3.5 * Math.PI) - 0.5 * Math.PI) < 1e-12);
 };
