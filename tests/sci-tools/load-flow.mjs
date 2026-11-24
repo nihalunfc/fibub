@@ -40,6 +40,15 @@ export default async (check) => {
   check('load flow: island is refused', /not connected/.test(err(() => loadFlow(buses, lines.filter((l) => l.to !== '5' && l.from !== '5'), { base: 100, method: 'nr' }))));
   check('load flow: unknown bus in a line is refused', /not in the bus table/.test(err(() => loadFlow(buses, [...lines, { from: '1', to: '9', R: 0, X: 0.1, B: 0 }], { base: 100, method: 'nr' }))));
   check('load flow: zero impedance is refused', /not zero/.test(err(() => loadFlow(buses, [...lines, { from: '1', to: '3', R: 0, X: 0, B: 0 }], { base: 100, method: 'nr' }))));
+  // New with the blog article on the Palestine Polytechnic University 230 kWp plant (doi:10.3390/solar5010001):
+  // a 3-bus 11 kV feeder on a 1 MVA base, 1.45 km per section, with and without 200 kW injected at the far end.
+  {
+    const L = [{ from: 'SUB', to: 'MID', R: 0.008951, X: 0.00358, B: 0 }, { from: 'MID', to: 'PCC', R: 0.008951, X: 0.00358, B: 0 }];
+    const feeder = (pg) => loadFlow([{ id: 'SUB', type: 'slack', Pd: 0, Qd: 0, Pg: 0, V: 1 }, { id: 'MID', type: 'PQ', Pd: 1.165, Qd: 0.66, Pg: 0, V: 1 }, { id: 'PCC', type: 'PQ', Pd: 0.4, Qd: 0.2267, Pg: pg, V: 1 }], L, { base: 1, method: 'nr', tol: 1e-10 });
+    const a = feeder(0), b = feeder(0.2);
+    check('load flow: 11 kV feeder drops to 0.977996 pu at the far end (2.2 %)', near(a.buses[2].V, 0.9779963, 1e-7) && near(a.lossP, 0.0320510, 1e-7));
+    check('load flow: 200 kW at the far end lifts it 0.370 % and cuts the losses 20.9 %', near(b.buses[2].V, 0.9816978, 1e-7) && near((b.buses[2].V - a.buses[2].V) * 100, 0.370, 1e-3) && near(1 - b.lossP / a.lossP, 0.209, 5e-4));
+  }
   check('load flow: bad bus type message', /slack, PV or PQ/.test(err(() => parseBuses('1, slack, 0,0,0,1\n2, gen2, 1,1,0,1'))));
   // A load far beyond what the line can carry has no solution: it must report not converged, not a wrong answer.
   { const r = loadFlow([{ id: 'A', type: 'slack', Pd: 0, Qd: 0, Pg: 0, V: 1 }, { id: 'B', type: 'PQ', Pd: 900, Qd: 300, Pg: 0, V: 1 }], [{ from: 'A', to: 'B', R: 0.02, X: 0.2, B: 0 }], { base: 100, method: 'nr' });
