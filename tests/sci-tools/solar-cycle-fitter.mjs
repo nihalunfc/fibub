@@ -58,4 +58,19 @@ export default async (check) => {
   { const short = L.parseSeries(L.exampleSeries().split('\n').slice(0, 300).join('\n'));
     const rr = L.analyse(short.pts, { gapYears: 7, c: 0.7, firstNumber: 1, fitTo: 'monthly', method: 'past', level: 0.95 });
     check('solar cycle: past shape needs two fitted cycles', rr.cycles.length === 2 && !rr.fc && rr.note.includes('at least two')); }
+  // New with the article on sunspot spikes (Carrasco et al. 2026, Universe 12(2): 28,
+  // doi:10.3390/universe12020028): the smoothing's middle value and the spread of monthly minus smoothed
+  // across a 24-cycle simulated record built with this module's own shape function and noise model.
+  check('solar cycle: a 0 to 12 ramp smooths to 6.0 at its middle month', near(L.smooth13(Array.from({ length: 13 }, (_, i) => i))[6], 6, 1e-12));
+  { const g = (() => { const x = L.peakX(L.EXAMPLE_C); return (x ** 3) / (Math.exp(x * x) - L.EXAMPLE_C); })();
+    const R2 = L.rng(28), cy = [];
+    let t0 = 1750;
+    for (let i = 0; i < 24; i++) { const A = 60 + 190 * R2.u(), b = 3.3 + R2.u(); cy.push({ a: A / (b ** 3 * g), b, t0, c: L.EXAMPLE_C }); t0 += 10.4 + 1.6 * R2.u(); }
+    const mo = [];
+    for (let y = 1750; y < t0 + 6; y++) for (let m = 1; m <= 12; m++) mo.push(L.decYear(y, m));
+    const v2 = mo.map((t) => Math.max(0, cy.reduce((q, pp) => q + L.shape(t, pp), 0) + R2.normal() * (4 + 0.3 * cy.reduce((q, pp) => q + L.shape(t, pp), 0))));
+    const S2 = L.smooth13(v2), dif = v2.map((val, i) => (Number.isFinite(S2[i]) ? val - S2[i] : NaN)).filter(Number.isFinite);
+    check('solar cycle: 3336 months of simulated record keep their 13-month smoothing', dif.length === 3336 && v2.length === 3348);
+    check('solar cycle: its 95th and 5th percentiles of monthly minus smoothed are +46.04 and -44.40', near(L.quantile(dif, 0.95), 46.04, 0.01) && near(L.quantile(dif, 0.05), -44.40, 0.01));
+    check('solar cycle: 53.8 % of those months sit below the smoothed curve, and the mean is zero', near((100 * dif.filter((d) => d < 0).length) / dif.length, 53.8, 0.1) && near(dif.reduce((a, b) => a + b, 0) / dif.length, 0, 0.5)); }
 };
