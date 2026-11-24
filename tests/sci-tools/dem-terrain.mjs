@@ -51,4 +51,14 @@ export default async (check) => {
   const E = exampleGrid(), S = derive(E, 'slope'), st = stats(S), cls = classShares(S, E, [0, 2, 5, 10, 15, 30, 45, 90.0001]), asp = aspectShares(derive(E, 'aspect'), E);
   check('dem: example mean slope and relief', Math.abs(st.mean - 12.75115) < 1e-4 && Math.abs(stats(E.z).max - stats(E.z).min - 510.4) < 1e-3);
   check('dem: slope classes and aspect shares add to 100 %', Math.abs(cls.reduce((s, c) => s + c.share, 0) - 1) < 1e-12 && Math.abs(cls.reduce((s, c) => s + c.area, 0) - 4.8e6) < 1e-3 && Math.abs(asp.reduce((s, x) => s + x, 0) - 1) < 1e-12);
+  // New with the optimal-grid-spacing article (Smith et al. 2019): a plane rising 3 m per cell, and noise propagated through Horn's weights.
+  { const row = [100, 103, 106, 109, 112], mk = (cs) => readAsc(`ncols 5\nnrows 5\nxllcorner 0\nyllcorner 0\ncellsize ${cs}\nNODATA_value -9999\n` + Array(5).fill(row.join(' ')).join('\n'));
+    const a = mk(10), b = mk(40), i = 12;
+    check('dem: plane rising 3 m per 10 m cell: slope 16.699 degrees, 30.000 percent, aspect 270 (centre cell)', Math.abs(derive(a, 'slope')[i] - 16.699) < 0.001 && Math.abs(derive(a, 'slopepct')[i] - 30) < 1e-4 && Math.abs(derive(a, 'aspect')[i] - 270) < 1e-3);
+    check('dem: the same heights on 40 m cells give 4.289 degrees (7.5 percent)', Math.abs(derive(b, 'slope')[i] - 4.289) < 0.001 && Math.abs(derive(b, 'slopepct')[i] - 7.5) < 1e-4); }
+  { const n = 200, z = new Float32Array(n * n); let sd = 99; const rnd = () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296);
+    for (let k = 0; k < z.length; k++) z[k] = 0.05 * Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+    const p = derive({ w: n, h: n, z, dx: 1, dy: 1, x0: 0, y0: n, unit: 'm', notes: [] }, 'slopepct'); let q = 0; for (let k = 0; k < p.length; k++) q += (p[k] / 100) ** 2;
+    const rms = Math.sqrt(q / p.length);
+    check(`dem: white noise of 0.05 m on flat 1 m cells: rms gradient ${rms.toFixed(4)} is sqrt(2) x (sqrt(12)/8) x 0.05 = 0.0306 within 3 percent`, Math.abs(rms / (Math.SQRT2 * (Math.sqrt(12) / 8) * 0.05) - 1) < 0.03); }
 };

@@ -32,4 +32,11 @@ export default async (check) => {
   const c = loadRecords(rows, { time: 0, date: -1, clock: -1, T: 1, RH: -1, P: -1, WS: -1, WD: -1, R: 2 }, num, 'ymd', 'total');
   check('station: running rain total, a reset, unordered rows, a duplicate and a bad time', c.unordered && c.dupes === 1 && c.badTime === 1 && c.firstBad === 'bad' && c.resets === 1 && c.recs.map((r) => +r.R.toFixed(2)).join() === '0,0.4,0.6,0.2' && c.recs[0].T === 5);
   check('station: sector names', sectorName(0, 16) === 'N' && sectorName(11, 16) === 'WSW' && sectorName(3, 8) === 'SE' && sectorName(2, 4) === 'S');
+  // New with the 24-hour-window article (Yang et al. 2026): a cosine day, a clock shifted by nine hours, and two small files of 6-hourly readings.
+  { const H = 3600e3, t0 = Date.UTC(2026, 2, 1), rs = Array.from({ length: 48 }, (_, i) => ({ t: t0 + i * H, T: 10 + 5 * Math.cos((2 * Math.PI * ((i % 24) - 15)) / 24) }));
+    const d = summarise(rs, 'day', H), e = summarise(rs.map((r) => ({ ...r, t: r.t - 9 * H })), 'day', H);
+    check('station: a cosine day (mean 10, amplitude 5, peak 15:00) has max 15, min 5, mean 10 and 24 records', d.length === 2 && d.every((x) => x.n === 24 && Math.abs(x.T.max - 15) < 1e-9 && Math.abs(x.T.min - 5) < 1e-9 && Math.abs(x.T.mean - 10) < 1e-9));
+    check('station: shifting the clock by nine hours moves the day boundary: the middle two days keep 24 records and the same max and min', e.filter((x) => x.n === 24).length === 1 && e.filter((x) => x.n === 24).every((x) => Math.abs(x.T.max - 15) < 1e-9 && Math.abs(x.T.min - 5) < 1e-9));
+    const v = [8, 6, 14, 12, 9, 7, 16, 13], a = summarise(v.map((x, i) => ({ t: t0 + i * 6 * H, T: x })), 'day', 6 * H), b = summarise(v.map((x, i) => ({ t: t0 + 9 * H + i * 6 * H, T: x })), 'day', 6 * H);
+    check('station: 6-hourly file a gives 1 March 14/6/10.00 and 2 March 16/7/11.25; moved 9 h later it gives 9.33 (3 records, 75 percent), 11.00 and a lone record', a[0].T.max === 14 && a[0].T.min === 6 && a[0].T.mean === 10 && a[1].T.max === 16 && a[1].T.min === 7 && a[1].T.mean === 11.25 && b.length === 3 && b[0].n === 3 && Math.abs(b[0].T.mean - 28 / 3) < 1e-9 && b[0].complete === 0.75 && b[1].T.mean === 11 && b[2].n === 1); }
 };
