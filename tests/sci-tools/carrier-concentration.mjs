@@ -38,5 +38,12 @@ export default async (check) => {
   check('carriers: 90 % ionisation temperature for 1e16 donors = 132.0526 K (SciPy brentq)', Math.abs(C.freezeOutTemperature(m, d(1e16, 0)) - 132.05263920284577) < 1e-5);
   check('carriers: regimes at 30 K, 300 K, 900 K are freeze-out, extrinsic, intrinsic', ['freeze-out', 'extrinsic', 'intrinsic'].every((r, i) => C.regime(C.solve([30, 300, 900][i], m, d(1e16, 0)), d(1e16, 0)) === r));
   check('carriers: degenerate flag at 1e20 donors in a GaAs-like gap (low Nc), not at 1e15', C.solve(300, C.PRESETS[2].m, d(1e20, 0)).degenerate && !C.solve(300, C.PRESETS[2].m, d(1e15, 0)).degenerate);
+  // New with src/blog/discoveries/si-doped-algao3-film-degenerate-carrier-concentration-fermi-level.md:
+  // a degenerate Si-doped beta-(AlxGa1-x)2O3-like film, n = 6.21e20 cm-3 (AIP Advances 15: 035045, CC BY 4.0).
+  const Ncg = C.effDos(0.28, 300), kT300 = C.KB * 300;
+  check('carriers: Nc for m* = 0.28 at 300 K = 3.71800e18 cm-3, and 6.21e20 cm-3 is 167.0 times it', rel(Ncg, 3.717997e18, 1e-6) && rel(6.21e20 / Ncg, 167.0238, 1e-5));
+  check('carriers: eta = 36.6446 gives F1/2 = 167.024, so EF - Ec = 0.947336 eV at 300 K', rel(C.fermiHalf(36.6446), 167.0236, 1e-6) && Math.abs(36.6446 * kT300 - 0.9473362) < 1e-6);
+  check('carriers: the Boltzmann shortcut at that eta would claim 3.0539e34 cm-3', rel(Ncg * Math.exp(36.6446), 3.053913e34, 1e-5));
+
   check('carriers: no NaN at 2 K or 2000 K', [2, 2000].every((T) => { const s = C.solve(T, m, d(1e17, 1e15)); return [s.EF, s.n, s.p, s.NdIon].every(Number.isFinite); }));
 };
