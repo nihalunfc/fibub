@@ -8,6 +8,7 @@
 // graph, with and without amide C–N bonds: 4,422 checks, 0 failed.
 // Hand-worked: formulas and masses of aspirin, caffeine, paracetamol and ibuprofen from atomic weights.
 import * as D from '../../src/lib/sci/druglike.ts';
+import { parseFormula, molarMass } from '../../src/lib/sci/chem.ts';
 
 export default async (check) => {
   const near = (a, b, t) => Math.abs(a - b) <= t;
@@ -35,6 +36,18 @@ export default async (check) => {
   { const props = { mw: 520, hbd: 2, hba: 4, rotatable: 4 }; const l = D.lipinski(props); check('Lipinski: one rule broken still passes; logP given joins the rules', l.pass && l.broken === 1 && l.checked === 3 && !D.lipinski(props, 6).pass && D.lipinski(props, 6).broken === 2 && D.lipinski(props, 4.9).checked === 4); }
   { const v = D.veber({ rotatable: 11, hbd: 1, hba: 2 }); check('Veber: 11 rotatable fails; given TPSA replaces the H-bond total', !v.pass && v.broken === 1 && D.veber({ rotatable: 3, hbd: 8, hba: 8 }).broken === 1 && D.veber({ rotatable: 3, hbd: 8, hba: 8 }, 120).pass && !D.veber({ rotatable: 3, hbd: 1, hba: 1 }, 141).pass); }
   check('limits are inclusive: MW 500, 5 donors, 10 acceptors, 10 rotatable, 12 H-bond total pass', D.lipinski({ mw: 500, hbd: 5, hba: 10 }).broken === 0 && D.veber({ rotatable: 10, hbd: 5, hba: 7 }).broken === 0);
+  // Pinned by /blog/discoveries/fucoxanthin-derivative-lipinski-veber-violations/: fucoxanthin written from its
+  // published structure (the formula and both masses are the check that the string is right), and the derivative's
+  // molecular weight from the formula the paper gives.
+  { const FUCO = 'CC(=O)OC1CC(C)(C)C(=C=CC(C)=CC=CC(C)=CC=CC=C(C)C=CC=C(C)C(=O)CC23OC2(C)CC(O)CC3(C)C)C(C)(O)C1';
+    const r = D.check(FUCO, { name: 'Fucoxanthin' }), f = r.props;
+    check('fucoxanthin: C42H58O6, 658.92, mono 658.4233, 2 donors, 6 acceptors, 3 rings, 12 rotatable',
+      !r.error && f.formulaText === 'C42H58O6' && near(f.mw, 658.92, 0.01) && near(f.mono, 658.42328, 1e-4) && f.hbd === 2 && f.hba === 6 && f.rings === 3 && f.rotatable === 12);
+    check('fucoxanthin: one Lipinski violation (weight) and one Veber violation (rotatable bonds)',
+      r.lip.broken === 1 && r.lip.rules.find((x) => x.id === 'mw').ok === false && r.veb.broken === 1 && r.veb.rules.find((x) => x.id === 'rot').ok === false);
+    check('fucoxanthin: a polar surface area of 113 keeps one Veber violation, 145 makes two',
+      D.veber(f, 113).broken === 1 && D.veber(f, 145).broken === 2);
+    check('the derivative formula C42H58O7 weighs 674.92 g/mol', near(molarMass(parseFormula('C42H58O7')), 674.92, 0.01)); }
   // Errors
   const bad = (s, msg) => { const r = D.check(s); return !!r.error && r.error.includes(msg); };
   check('errors: unclosed ring, bad element, bare H, too many bonds, unclosed branch', bad('C1CC', 'never closed') && bad('[Xx]', 'not an element') && bad('CH4', 'hydrogens by itself') && bad('C(C)(C)(C)(C)C', 'more than C normally makes') && bad('CC(C', 'never closed'));
