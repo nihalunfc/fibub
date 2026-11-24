@@ -30,4 +30,6 @@ export default async (check) => {
   const x = E.exactOR(12, 5, 6, 20);
   check('epistat: conditional MLE OR and exact limits (scipy odds_ratio conditional)', near(x.or, 7.5465505869899525, 1e-7) && near(x.exact[0], 1.676713761015668, 1e-7) && near(x.exact[1], 40.493213022964966, 1e-7));
   check('epistat: chi-square 2x2 with Yates (scipy chi2_contingency)', near(E.chi2x2(10, 2, 3, 15).chi2, 13.031674208144796, 1e-6) && near(E.chi2x2(10, 2, 3, 15, true).chi2, 10.45814479638009, 1e-6));
+  const pw = D.fromTable(141, 616, 5, 756, 'wilson');
+  check('diag: preschool WHtR 0.50 against the waist P90 (141, 616, 5, 756): sens 96.6 %, spec 55.1 %, PPV 18.6 %', near(pw.get('sens').est, 141 / 146) && near(pw.get('spec').est, 756 / 1372) && near(pw.get('ppv').est, 141 / 757));
 };
