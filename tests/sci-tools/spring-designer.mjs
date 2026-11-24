@@ -21,6 +21,13 @@ export default async (check) => {
   check('spring: torsion rate per radian vs Castigliano with legs (NumPy 496.157 N·mm/rad)', near(t.kRad, 496.1565318962639, 1e-10));
   check('spring: torsion 10.8 form, angle and stress', near(t.kTurn, 16 * 200000 / (10.8 * 16 * t.Na)) && near(t.deg, 360 * 500 / t.kTurn) && near(t.sigma, S.kInner(8) * 32 * 500 / (Math.PI * 8)));
   check('spring: coil diameter tightens under load', t.Dp < 16 && near(t.Dp, 16 * 6 / (6 + t.turns)));
+  // The published aircraft springs of src/blog/discoveries/titanium-alloy-spring-rate-control-aerospace.md
+  // (Li et al. 2024, Aerospace 11: 514): a titanium replacement for a steel spring, both 616 mm long.
+  { const ti = S.compression({ d: 13, D: 65, Na: 18, G: 40000, ends: 'squared-ground', L0: 616, y: 275, tauAllow: 800, alpha: 0.5, rho: 4820 });
+    check('spring: titanium aircraft spring gives 28.89 N/mm, 784 MPa at work and 1015 MPa at solid', near(ti.k, 28.889, 5e-4) && near(ti.tau, 784, 0.5) && near(ti.tauS, 1015, 0.5) && ti.Nt === 20 && near(ti.Ls, 260, 1e-9));
+    check('spring: its mass is 2.61 kg and it is past the 341.9 mm buckling limit (paper: about 2.6 kg)', near(ti.mass, 2.61, 5e-3) && near(ti.Lcrit, 341.9, 0.05) && !ti.stable);
+    check('spring: the steel spring it replaces is 5.15 kg at 28.26 N/mm (paper: 5.1 kg, 28.0 to 28.8)', (() => { const st = S.compression({ d: 12, D: 66, Na: 26, G: 81500, ends: 'squared-ground', L0: 616, y: 275, tauAllow: 800, alpha: 0.5, rho: 7850 }); return near(st.mass, 5.15, 5e-3) && near(st.k, 28.26, 5e-3) && st.Nt === 28; })());
+    check('spring: 0.1 mm more wire adds 0.90 N/mm (the paper says about 0.9)', near(S.rate(40000, 13.1, 65, 18) - S.rate(40000, 13, 65, 18), 0.9, 0.01)); }
   let threw = 0;
   try { S.compression({ d: 2, D: 20, Na: 8, G: 79000, ends: 'plain', L0: 10, F: 1, tauAllow: 1, alpha: 1, rho: 1 }); } catch { threw++; }
   try { S.extension({ d: 1, D: 10, Nb: 5, G: 1, E: 1, Fi: 10, F: 5, r2: 2, tauAllow: 1, sigmaAllow: 1, rho: 1 }); } catch { threw++; }

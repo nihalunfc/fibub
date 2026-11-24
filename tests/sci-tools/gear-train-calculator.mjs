@@ -31,6 +31,14 @@ export default async (check) => {
   check('gear: equal pulleys L = 2C + πD', near(G.belt(250, 250, 600, false).L, 1200 + Math.PI * 250, 1e-12));
   check('gear: approximation close to exact', Math.abs(G.beltApprox(300, 100, 500, false) / G.belt(300, 100, 500, false).L - 1) < 1e-4);
   check('gear: centre distance from belt length', near(G.beltCentre(300, 100, 1648.386011989296, false), 500, 1e-9) && near(G.beltCentre(300, 100, 1709.4404081361217, true), 500, 1e-9));
+  // The published one-stage gearbox of src/blog/discoveries/gearbox-tooth-numbers-ratio-four-automatic-dimensioning.md
+  // (Fait 2026, Machines 14: 36): 70 kW at 330 rpm, 19 and 76 teeth, module 2 mm.
+  { const m = (eff) => [{ driver: 19, driven: 76, kind: 'external', eff }];
+    const t = G.train(m(1), 330, 2025.6), t98 = G.train(m(0.98), 330, 2025.6);
+    check('gear: 19/76 at 330 rpm and 2025.6 N·m gives exactly 4, 82.5 rpm, 8102.4 N·m reversed', t.ratio === 4 && near(t.shafts[1].speed, 82.5, 1e-12) && near(t.shafts[1].torque, 8102.4, 1e-9) && t.shafts[1].dir === -1);
+    check('gear: a 98 % mesh gives 7940.352 N·m and a 95 mm centre distance at module 2', near(t98.shafts[1].torque, 7940.352, 1e-9) && near(G.centreDistance(2, m(1)[0]), 95, 1e-12) && near(G.centreDistance(1.94, m(1)[0]), 92.15, 1e-12));
+    const hits = G.findRatios(4, 17, 150, 1, 21);
+    check('gear: 21 exact ratio-4 pairs between 17 and 150 teeth, starting 17/68', hits.length === 21 && hits.every((h) => h.err === 0 && h.teeth[1] === 4 * h.teeth[0]) && hits[0].teeth[0] === 17 && hits[20].teeth[0] === 37); }
   let threw = 0; try { G.belt(300, 100, 90, false); } catch { threw++; } try { G.planetary(24, 72, 1, NaN, NaN); } catch { threw++; } try { G.beltCentre(300, 100, 500, false); } catch { threw++; }
   check('gear: bad geometry rejected', threw === 3);
 };
