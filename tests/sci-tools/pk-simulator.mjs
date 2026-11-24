@@ -32,4 +32,16 @@ export default async (check) => {
   check('pksim: ka = k limit', near(s5.single(5), (100 * 0.1 / 50) * 5 * Math.exp(-0.5), 1e-9));
   const throws = (f) => { try { f(); return false; } catch { return true; } };
   check('pksim: rejects bad input', throws(() => simulate({ comp: 1, cl: 0, v1: 50 }, r)) && throws(() => simulate(m, { ...r, f: 1.5 })) && throws(() => simulate(m, { route: 'infusion', amount: 1, tau: 4, n: 2, tinf: 6 })) && throws(() => simulate(m, { ...r, n: 0 })));
+  // New with the article on penciclovir in cats (Qu et al. 2025): CL 1.21 L/h, V 3.33 L, 31.25 mg over 1 h, and the
+  // repeated oral model CL/F 5.91 L/h, V/F 46.71 L, 149 mg every 12 h, ka 0.73 /h, against closed forms written out here.
+  {
+    const k = 1.21 / 3.33, ci = summarise({ comp: 1, cl: 1.21, v1: 3.33 }, { route: 'infusion', amount: 31.25, tau: 1000, n: 1, tinf: 1 });
+    check('pksim: penciclovir IV, 1 h infusion peak (31.25/1.21)(1 − e^−k) = 7.868 mg/L, half-life 1.908 h', near(ci.cmax1, (31.25 / 1.21) * (1 - Math.exp(-k))) && near(ci.cmax1, 7.86845, 1e-5) && near(ci.halfLives[0], Math.LN2 / k));
+    const kk = 5.91 / 46.71, ka = 0.73, c = (149 * ka) / (46.71 * (ka - kk));
+    const css = (t) => c * (Math.exp(-kk * t) / (1 - Math.exp(-kk * 12)) - Math.exp(-ka * t) / (1 - Math.exp(-ka * 12)));
+    const auc1 = c * ((1 - Math.exp(-kk * 12)) / kk - (1 - Math.exp(-ka * 12)) / ka);
+    const uo = summarise({ comp: 1, cl: 5.91, v1: 46.71 }, { route: 'oral', amount: 149, tau: 12, n: 28, ka, f: 1 });
+    const tpk = Math.log((ka * (1 - Math.exp(-kk * 12))) / (kk * (1 - Math.exp(-ka * 12)))) / (ka - kk);
+    check('pksim: penciclovir every 12 h, steady-state peak 2.979 mg/L, accumulation 1.361 (closed forms)', near(uo.cmaxSs, css(tpk), 1e-7) && near(uo.cmaxSs, 2.97914, 1e-5) && near(uo.racAuc, (149 / 5.91) / auc1, 1e-7) && near(uo.cavSs, 149 / 5.91 / 12));
+  }
 };

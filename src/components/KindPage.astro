@@ -19,6 +19,7 @@ const title = page > 1 ? `${kind.name}, page ${page} | Blog` : `${kind.name} | B
   <div class="ar-head">
     <h1>{kind.name}{page > 1 && <small class="ar-page"> page {page} of {pages}</small>}</h1>
     <p class="lead">{kind.blurb}</p>
+    {kind.id === 'discoveries' && <p class="ar-count"><a href="/blog/papers/">See every paper we have checked</a>, with its DOI, licence and the tool that checked it.</p>}
   </div>
   {list.length ? <>
     <BlogFilter kind={kind.id} />

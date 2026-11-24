@@ -25,4 +25,6 @@ export default async (check) => {
   check('nano: particle mass, number and molar concentration match numpy', near(particleMass(20, 19.3), 8.084365095237734e-17, 1e-13) && near(numberConc(0.05, particleMass(20, 19.3)).perML, 618477758129.127, 1e-13) && near(numberConc(0.05, particleMass(20, 19.3)).molar, 1.0270064795515126e-9, 1e-13));
   check('nano: a particle thinner than two atoms is all surface', sphereAtoms(0.5, 19.3, 196.96657).fraction === 1);
   check('nano: a typed atom diameter replaces the estimate', near(sphereAtoms(10, 19.3, 196.96657, 0.288).fraction, 1 - (1 - 0.0576) ** 3, 1e-13));
+  // New with the CeO2 lead-adsorption article (Separations 13: 61, 2026): BET 118.96 m²/g at bulk 7.22 g/cm³.
+  check('nano: CeO2 BET 118.96 m²/g gives a 6.986 nm equivalent sphere; 100 nm spheres give 8.310 m²/g', near(betDiameter(118.96, 7.22), 6.985751, 1e-6) && near(specificSurface(100, 7.22), 8.31025, 1e-5) && near(sphereAtoms(100, 7.22, 172.11).fraction, 0.0251563, 1e-5));
 };

@@ -26,4 +26,10 @@ export default async (check) => {
   const S2 = [[2, 8, 1, 9], [6, 4, 2, 8], [15, 5, 3, 7], [1, 20, 0, 25]].map(([a, b, c, d], i) => ({ name: 's' + i, a, b, c, d }));
   const m2 = O.stratified(S2);
   check('or: strata with a zero cell still pool', Number.isFinite(m2.or) && m2.bdDf === 3 && Number.isFinite(m2.bdP));
+  // New with the article on the honey cake Salmonella outbreak (Gazezova et al. 2024): 59/68 ill among cake eaters,
+  // 7/70 among the rest. Katz log interval written out by hand: RR 8.676, 95 % CI 4.270 to 17.63; OR 59.
+  {
+    const r = O.single(59, 9, 7, 63), se = Math.sqrt(1 / 59 - 1 / 68 + 1 / 7 - 1 / 70), z = 1.959963984540054;
+    check('or: honey cake outbreak, RR 8.676 (4.270 to 17.63), OR 59', near(r.rr, (59 / 68) / (7 / 70)) && near(r.rrCI[0], r.rr * Math.exp(-z * se), 1e-7) && near(r.rrCI[1], r.rr * Math.exp(z * se), 1e-7) && near(r.rrCI[0], 4.27049, 1e-5) && r.or === 59);
+  }
 };

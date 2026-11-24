@@ -50,6 +50,14 @@ export default async (check) => {
   const w = windows({ t: tt, h: hx }, 2.6);
   check('tide: windows start and end at the needed level', w.length === 6 && w.every(([a, b]) => near(predict(EXAMPLE, 2, [a], true)[0], 2.6, 2e-3) && near(predict(EXAMPLE, 2, [b], true)[0], 2.6, 2e-3)));
   check('tide: times and names parse', parseTime('2026-01-02 03:04') === Date.UTC(2026, 0, 2, 3, 4) && parseTime('2026-01-02T03:04:30', 5) === Date.UTC(2026, 0, 1, 22, 4, 30) && Number.isNaN(parseTime('2026-13-01')) && known('m2') === 'M2' && known('2MK3') === 'MO3' && known('X9') === null);
+  // New with the GESLA tide-age article: NOAA's published constants for The Battery, New York (8518750), 8 main
+  // constituents plus M4, mean level 0: a spring high water at 2027-03-10 01:45 UTC of 0.80 m, and 2.9 h above 0.60 m.
+  { const ny = [['M2', 0.671, 18.2], ['S2', 0.128, 42.9], ['N2', 0.156, 0.5], ['K2', 0.036, 44.5], ['K1', 0.103, 178.5], ['O1', 0.051, 176.3], ['P1', 0.033, 178.8], ['Q1', 0.011, 196.6], ['M4', 0.024, 264.1]].map(([name, H, G]) => ({ name, H, G }));
+    const a = Date.UTC(2027, 2, 9), b = a + 2 * 86400000, tn = []; for (let x = a; x <= b + 1; x += 360000) tn.push(x);
+    const hw = extremes(ny, 0, a, b, true).filter((x) => x.kind === 'high').sort((p, q) => q.h - p.h)[0];
+    const wn = windows({ t: tn, h: predict(ny, 0, tn, true) }, 0.6).find(([p, q]) => p <= hw.t && q >= hw.t);
+    check('tide: New York spring high water 2027-03-10 01:45 UTC, 0.80 m, 2.9 h above 0.60 m', near(hw.h, 0.80, 0.005) && near(hw.t, Date.UTC(2027, 2, 10, 1, 45), 60000) && near((wn[1] - wn[0]) / 3600000, 2.9, 0.05));
+    check('tide: age of the tide (G_S2 − G_M2)/(ω_S2 − ω_M2) for New York is 24.3 h', near((42.9 - 18.2) / (speed('S2') - speed('M2')), 24.3, 0.05)); }
   let thr = false; try { analyse(t.slice(0, 20), h0.slice(0, 20), names, true); } catch { thr = true; }
   check('tide: too few readings refused', thr);
 };

@@ -37,4 +37,11 @@ export default async (check) => {
   check('cubesat: too much load empties the battery', hungry.empty && hungry.endSoc === 0);
   const idle = simulate(500, 80, arr, { mode: 'sun', sunFace: '-Z' }, 1, bat, 2);
   check('cubesat: no eclipse, small load: battery stays full, surplus shunted', idle.ecl === 0 && idle.maxDod === 0 && idle.shunted > 0);
+  // New with the Ex-Alta 2 article (arXiv:2407.19356): six 69 × 40 mm cells at 30.7 % give 6.92 W, the panel's 14.4 V × 0.48 A;
+  // three zenith-facing panels and two side panels, nadir-pointing at 415 km and beta 20°, with a 3.8 W load.
+  { const P = (n, f) => ({ name: n, face: f, areaCm2: 165.6 }); const ex = { eff: 0.307, packing: 1, tempCoef: -0.25, tempC: 28, refC: 28, degPerYear: 0, years: 0, other: 1, panels: [P('z', '-Z'), P('w1', '-Z'), P('w2', '-Z'), P('p', '+Y'), P('s', '-Y')] };
+    check('cubesat: Ex-Alta 2 panel peak = 1361 × 0.01656 m² × 0.307', near(panelPeak(ex, ex.panels[0]), 6.91921512));
+    check('cubesat: 415 km at beta 0 is 61.2 % sunlit', near(eclipseFraction(415, 0), 0.3881618087547496));
+    const r = simulate(415, 20, ex, { mode: 'nadir', sunFace: '-Z' }, 3.8, { capacityWh: 20, chargeEff: 0.95, dischargeEff: 0.95, startSoc: 100 });
+    check('cubesat: Ex-Alta 2 at beta 20: 7.67 W average, DoD 13.3 %', near(r.genAvg, 7.674817705912851, 1e-6) && near(r.maxDod, 13.311921921483327, 1e-6)); }
 };

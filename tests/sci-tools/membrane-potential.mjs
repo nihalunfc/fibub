@@ -14,4 +14,12 @@ export default async (check) => {
   check('membrane: zero-current potential equals GHK voltage without Ca', near(G.zeroCurrent(ions, 37), -64.92311720, 1e-9));
   check('membrane: zero-current potential with Ca permeant matches brentq', near(G.zeroCurrent(ions.map((i) => (i.name === 'Ca' ? { ...i, p: 0.1 } : i)), 37), -63.77897047, 1e-9));
   check('membrane: each ion current reverses at its Nernst potential', Math.abs(G.ghkCurrent(ions[1], G.nernst(1, 145, 12, 37), 37)) < 1e-9);
+  // New with the article on calcium and Drosophila larval muscle (Elliott and Cooper 2024): HL3-like saline at 21 °C,
+  // K 5/174.2, Na 80/10, Cl 117/24.15 mM, P 1 : 0.127 : 0.1 gives -60.0 mV; the leak cut to 0.07 gives -67.5 mV;
+  // the same in choline saline (Na out 10) only -77.8 to -79.5 mV. Checked against the GHK formula written out here.
+  {
+    const fly = (pna, nao) => [{ name: 'K', z: 1, out: 5, in: 174.2, p: 1 }, { name: 'Na', z: 1, out: nao, in: 10, p: pna }, { name: 'Cl', z: -1, out: 117, in: 24.15, p: 0.1 }];
+    const hand = (pna, nao) => G.rtf(21) * Math.log((5 + pna * nao + 0.1 * 24.15) / (174.2 + pna * 10 + 0.1 * 117));
+    check('membrane: fly muscle model -60.0 → -67.5 mV in HL3, -77.8 → -79.5 mV in choline saline', near(G.ghkVoltage(fly(0.127, 80), 21), hand(0.127, 80)) && Math.abs(G.ghkVoltage(fly(0.127, 80), 21) + 60.0) < 0.05 && Math.abs(G.ghkVoltage(fly(0.07, 80), 21) + 67.5) < 0.05 && Math.abs(G.ghkVoltage(fly(0.127, 10), 21) + 77.8) < 0.05 && Math.abs(G.ghkVoltage(fly(0.07, 10), 21) + 79.5) < 0.05 && Math.abs(G.nernst(1, 5, 174.2, 21) + 90) < 0.01);
+  }
 };
