@@ -23,6 +23,14 @@ export default async (check) => {
   { const s = spreading(mm, 'step', false, 1000, 0, 0); check('fibre: step-index modal spread 67.6 ns/km', near(s.modal, (1000 * 1.48 * 0.02) / (299792458 * 1.46), 1e-18) && near(s.modal * 1e9, 67.63, 0.01)); }
   { const s = spreading(mm, 'graded', false, 1000, 0, 0), d = (1.48 ** 2 - 1.46 ** 2) / (2 * 1.48 ** 2); check('fibre: graded-index modal spread L n1 Δ²/(8c)', near(s.modal, (1000 * 1.48 * d * d) / (8 * 299792458), 1e-20)); }
   { const s = spreading(f, 'step', true, 80000, 17, 0.1); check('fibre: chromatic spread D L Δλ = 136 ps', near(s.chrom, 136e-12, 1e-18) && s.modal === 0 && near(s.bandwidth, 0.44 / 136e-12, 1)); }
+  // The three few-mode fibres of Cifuentes et al. (2025), Photonics 12(7): 716, at 810 nm, entered as NA and core
+  // diameter (n2 chosen to give the stated NA with a fused-silica core): 6, 12 and 20 modes, and LP12 only just in.
+  { const n1 = 1.4533, tot = (V) => lpModes(V).reduce((s, m) => s + m.degeneracy, 0);
+    const fib = (NA, d) => ({ n1, n2: Math.sqrt(n1 * n1 - NA * NA), aUm: d / 2, lamNm: 810 });
+    const [b1, b2, b3] = [fib(0.14, 6), fib(0.13, 9), fib(0.12, 12)].map(basics);
+    check('fibre: three few-mode fibres at 810 nm give V 3.2579, 4.5379, 5.5851', near(b1.V, 3.2579, 5e-5) && near(b2.V, 4.5379, 5e-5) && near(b3.V, 5.5851, 5e-5));
+    check('fibre: those fibres carry 6, 12 and 20 modes (2, 4 and 6 LP groups)', tot(b1.V) === 6 && tot(b2.V) === 12 && tot(b3.V) === 20 && lpModes(b1.V).length === 2 && lpModes(b2.V).length === 4 && lpModes(b3.V).length === 6);
+    check('fibre: the 12 um NA 0.12 fibre loses LP12 above 819.5 nm', near((2 * Math.PI * 6 * 0.12 * 1000) / besselZero(0, 2), 819.53, 0.01) && lpModes(basics({ ...fib(0.12, 12), lamNm: 820 }).V).length === 5); }
   const lb = linkBudget({ txDbm: 0, rxDbm: -28, attDbPerKm: 0.25, Lkm: 80, nConn: 2, connDb: 0.5, nSplice: 8, spliceDb: 0.1, marginDb: 3 });
   check('fibre: link budget sums', near(lb.loss, 20 + 1 + 0.8, 1e-12) && near(lb.rx, -21.8, 1e-12) && near(lb.spare, 3.2, 1e-12) && lb.ok && near(lb.maxKm, 92.8, 1e-9));
 };
