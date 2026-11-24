@@ -52,6 +52,32 @@ export default async (check) => {
   check('transect: Sagebrush first, cover 9.6667 %, frequency 1, density 0.108399 /m²', sb.species === 'Sagebrush' && close(sb.cover, 9.666667) && close(sb.frequency, 1) && close(sb.density, 0.108399));
   check('transect: Sagebrush IV 141.1063, Rabbitbrush RD 46.3153 and IV 90.3506', close(sb.iv, 141.106261) && close(rb.relDensity, 46.315296) && close(rb.iv, 90.350642));
   check('transect: total density 0.281884 /m², cover 16.1667 %', close(t.totalDensity, 0.2818843) && close(t.totalCover, 16.166667));
+  // New with the alligator weed article (Sharma and Das 2025, Front. Conserv. Sci. 6: 1615630): four species of
+  // site 3 rebuilt on 15 quadrats of 2.25 m2, listing only the 5 quadrats that hold them.
+  { const A = `Q1\tAlternanthera philoxeroides\t8\t54.5
+Q2\tAlternanthera philoxeroides\t8\t54.5
+Q3\tAlternanthera philoxeroides\t8\t54.5
+Q4\tAlternanthera philoxeroides\t8\t54.5
+Q5\tAlternanthera philoxeroides\t7\t54.5
+Q1\tParthenium hysterophorus\t10\t44.9
+Q2\tParthenium hysterophorus\t10\t44.9
+Q3\tParthenium hysterophorus\t9\t44.9
+Q4\tParthenium hysterophorus\t9\t44.9
+Q1\tCyperus rotundus\t8\t19.8
+Q2\tCyperus rotundus\t7\t19.8
+Q3\tCyperus rotundus\t7\t19.8
+Q4\tCyperus rotundus\t7\t19.8
+Q5\tCyperus rotundus\t7\t19.8
+Q1\tPhyla nodiflora\t11\t8.5
+Q2\tPhyla nodiflora\t10\t8.5
+Q3\tPhyla nodiflora\t10\t8.5`;
+    const w = quadrats(recs(A), 2.25, 15), ap = w.rows[0];
+    check('quadrat: alligator weed first on IV 103.7549 of 300', ap.species === 'Alternanthera philoxeroides' && close(ap.iv, 103.754897, 1e-5) && w.ivMax === 300);
+    check('quadrat: alligator weed density 1.155556 /m², frequency 1/3, cover 18.166667 %', close(ap.density, 1.1555556, 1e-6) && close(ap.frequency, 1 / 3) && close(ap.cover, 18.1666667, 1e-6));
+    check('quadrat: relative values 27.0833, 29.4118, 47.2598', close(ap.relDensity, 27.083333, 1e-5) && close(ap.relFrequency, 29.411765, 1e-5) && close(ap.relCover, 47.259799, 1e-5));
+    check('quadrat: Phyla nodiflora last on 43.5973, the four add to 300', close(w.rows[3].iv, 43.597313, 1e-5) && close(w.rows.reduce((s, r) => s + r.iv, 0), 300, 1e-9));
+    const w5 = quadrats(recs(A), 2.25, 5);
+    check('quadrat: 5 quadrats instead of 15 treble density and leave every importance value alone', close(w5.totalDensity, 3 * w.totalDensity, 1e-9) && close(w5.rows[0].iv, ap.iv, 1e-9)); }
   let threw = false; try { lineIntercept([{ sample: 'T1', species: 'X', a: 1, b: 1 }, { sample: 'T1', species: 'Y', a: 1, b: null }], 10); } catch { threw = true; }
   check('transect: widths must be given for all or none', threw);
 };
