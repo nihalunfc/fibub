@@ -98,6 +98,6 @@ Every change runs `tests/sci-tools/astro-time.mjs`, new with this article. It pi
 
 - This is a **recomputation of printed times**. The paper's science (the afterglow model, the host association, the upper limits) is described here but not checked: no fibub tool fits a jet model.
 - The two disagreements in delay (TRT and Las Cumbres) are open: we cannot tell from the paper whether it quotes start or mid-exposure times.
-- The converter currently shows a ΔT (TT − UT) of **74.9 s** for September 2025, where the actual TT − UTC offset is 69.184 s. That does not affect Julian Dates, delays, sidereal time or light-time corrections, but it makes the page's **BJD (TDB)** about 5.7 seconds too late. We report it and have not changed the tool.
+- Writing this article turned up a real error in the converter: it took TT from a predicted-ΔT polynomial, which read 74.9 s for September 2025 where the true TT − UTC offset is 69.184 s, making the page’s **BJD (TDB)** about 5.7 seconds too late. Terrestrial Time now comes from the leap-second table (TT = TAI + 32.184 s), so it is exact, and the page shows **TT − UTC** rather than an estimated ΔT. Julian Dates, delays, sidereal time and light-time corrections were never affected.
 - Altitudes assume the standard site position and the converter's geometry. A real schedule also has the Moon, dome limits and weather.
 - The favoured redshift z = 2.714 is the paper's judgment, not a certainty; the paper also discusses z = 0.374 and gravitational lensing.

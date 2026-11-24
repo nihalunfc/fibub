@@ -30,4 +30,12 @@ export default async (check) => {
   const t = A.MakeTime(new Date(T0)), b = A.BaryState(A.Body.Earth, t), h = A.HelioVector(A.Body.Earth, t);
   const db = (b.x * n.x + b.y * n.y + b.z * n.z) * 499.004783836, dh = (h.x * n.x + h.y * n.y + h.z * n.z) * 499.004783836;
   check('astro-time: light-time to the Solar System barycentre for the counterpart on 2025-09-05 is +333.5 s (heliocentre +335.8 s), under 499 s × cos β = 422 s', near(db, 333.5, 0.1) && near(dh, 335.8, 0.1) && Math.abs(db) < 422.1);
+
+  // Terrestrial Time comes from the leap-second table, not a predicted-dT polynomial: writing the article
+  // showed the polynomial reading 74.9 s for September 2025 where TT - UTC is exactly 69.184 s.
+  const TT = await import('../../src/lib/sci/ttscale.ts');
+  check('astro-time: TT - UTC is exactly 69.184 s for the trigger date, not the 74.9 s a predicted-dT model gives',
+    TT.ttMinusUtc(new Date('2025-09-05T18:26:07Z')) === 69.184 && TT.taiMinusUtc(new Date('2025-09-05T18:26:07Z')) === 37);
+  check('astro-time: the leap-second table steps at the right dates (36 s in 2016, 37 s from 2017, 32 s in 2000)',
+    TT.taiMinusUtc(Date.UTC(2016, 5, 1)) === 36 && TT.taiMinusUtc(Date.UTC(2017, 0, 1)) === 37 && TT.taiMinusUtc(Date.UTC(2000, 0, 1)) === 32);
 };
