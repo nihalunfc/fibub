@@ -18,4 +18,11 @@ export default async (check) => {
   check('gr: weak-field light bending 4M/b', near(G.lightRay(1e4).deflection, 4e-4, 0.002));
   check('gr: RK4 trace returns to periapsis after Δφ', (() => { const o = G.bound(10, 30), pts = G.trace(o.u2, 0, 1 / (o.L * o.L), o.dphi, 0.001); return Math.abs(pts[pts.length - 1][1] - o.u2) < 1e-6; })());
   check('gr: solar mass length and time scales', near(G.M_SUN_M, 1476.625, 1e-6) && near(G.M_SUN_S * 299792458, G.M_SUN_M, 1e-5));
+  // S4714 of the Galactic-centre S-cluster (a = 841.35 au, e = 0.985) around a 4.1e6-solar-mass black hole, as used in
+  // /blog/discoveries/s-cluster-stars-schwarzschild-pericentre-precession-sgr-a/ (Universe 12: 318, 2026, CC BY 4.0).
+  check('gr: S4714 pericentre advance is 105.49 arcminutes per orbit (weak field 104.68)', (() => {
+    const o = G.bound(311.845, 41267.5), arcmin = (x) => (x * 180 * 60) / Math.PI;
+    return near(arcmin(o.precession), 105.4921289, 1e-7) && near(arcmin(o.weak), 104.6828912, 1e-7)
+      && near(o.E, 0.9999759504722112, 1e-13) && near(o.L, 24.9601318, 1e-8) && near(o.p, 619.0123263, 1e-8);
+  })());
 };

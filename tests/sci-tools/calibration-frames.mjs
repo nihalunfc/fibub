@@ -36,5 +36,38 @@ export default async (check) => {
   check('calframes: median of an even count is the mean of the middle two; histogram counts every pixel', (() => { const fr = [1, 2, 3, 10].map((v) => ({ w: 1, h: 1, planes: [new Float32Array([v])] })); const h = C.histogram(c1, 0, 1000, 50); return C.combine(fr, { method: 'median' }).frame.planes[0][0] === 2.5 && h.counts.reduce((a, b) => a + b, 0) === 2400 && h.width === 20; })());
   { const big = C.demoSet(); const mb2 = C.combine(big.bias, { method: 'sigma' }).frame, md2 = C.combine(big.darks, { method: 'sigma' }).frame, mf2 = C.combine(big.flats, { method: 'sigma' }).frame; const cal = C.calibrate(big.lights[0], { bias: mb2, dark: md2, flat: mf2 }, { scaleDark: false, tLight: 120, tDark: 120, flatNorm: 'mean', minFlat: 0.05 }).frame.planes[0]; const r1 = C.flatness(cal, big.lights[0].w, big.lights[0].h).ratio; const r0 = C.flatness(C.calibrate(big.lights[0], { dark: md2 }, { scaleDark: false, tLight: 120, tDark: 120, flatNorm: 'mean', minFlat: 0.05 }).frame.planes[0], big.lights[0].w, big.lights[0].h).ratio;
     check(`calframes: demo light minus dark: vignetting centre/corner ratio ${r0.toFixed(3)} falls to ${r1.toFixed(3)} after calibration`, r0 > 1.15 && Math.abs(r1 - 1) < 0.03); }
+  // A pretend Andor Marana sCMOS with the published properties of Apergis et al. (2025), RASTI 4: rzaf049 (CC BY 4.0):
+  // gain 1.131 e-/ADU, read noise 1.571 e-, offset fixed-pattern noise 0.232 e-, bias 100.48 ADU. Used in
+  // /blog/discoveries/marana-scmos-camera-master-frames-read-noise-dark-current/.
+  check('calframes: simulated Marana sCMOS gives back its 1.571 e− read noise, 0.248 ADU master bias and 1.131 e−/ADU gain', (() => {
+    const G = 1.131, RN = 1.571 / G, DSNU = 0.232 / G, BIAS = 100.48, W = 240, H = 160, N = W * H;
+    let seed = 20261124 >>> 0;
+    const u = () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    let spare = null;
+    const g1 = () => { if (spare !== null) { const v = spare; spare = null; return v; } const r = Math.sqrt(-2 * Math.log(1 - u())), a = 2 * Math.PI * u(); spare = r * Math.sin(a); return r * Math.cos(a); };
+    const offset = Float64Array.from({ length: N }, () => BIAS + DSNU * g1());
+    const sens = Float64Array.from({ length: N }, () => 1 + 0.00131 * g1());
+    const frame = (f) => { const p = new Float32Array(N); for (let i = 0; i < N; i++) p[i] = f(i); return { w: W, h: H, planes: [p] }; };
+    const pool = Array.from({ length: 100 }, () => frame((i) => offset[i] + RN * g1()));
+    const masterSd = C.exactStats(C.combine(pool, { method: 'mean' }).frame.planes[0]).std;
+    const d0 = new Float64Array(N); for (let i = 0; i < N; i++) d0[i] = pool[0].planes[0][i] - pool[1].planes[0][i];
+    const rnAdu = C.exactStats(d0).std / Math.SQRT2;
+    const levels = [200, 600, 1500, 3000, 6000, 10000, 16000, 24000, 34000, 45000, 55000];
+    let sxx = 0, sxy = 0;
+    for (const s of levels) {
+      let sm = 0, sv = 0;
+      for (let k = 0; k < 4; k++) {
+        const a = frame((i) => { const e = s * G * sens[i]; return offset[i] + (e + Math.sqrt(e) * g1()) / G + RN * g1(); });
+        const b = frame((i) => { const e = s * G * sens[i]; return offset[i] + (e + Math.sqrt(e) * g1()) / G + RN * g1(); });
+        const d = new Float64Array(N); for (let i = 0; i < N; i++) d[i] = a.planes[0][i] - b.planes[0][i];
+        sm += (C.exactStats(a.planes[0]).mean + C.exactStats(b.planes[0]).mean) / 2 - BIAS;
+        sv += C.exactStats(d).std ** 2 / 2;
+      }
+      const x = sm / 4, y = sv / 4 - rnAdu ** 2;
+      sxx += x * x; sxy += x * y;
+    }
+    const gain = sxx / sxy;
+    return Math.abs(masterSd - 0.2479) < 5e-4 && Math.abs(rnAdu - 1.3905) < 5e-4 && Math.abs(gain - 1.1302) < 5e-4;
+  })());
   check('calframes: errors for mismatched sizes and for dark scaling without a bias', (() => { try { C.calibrate(d.lights[0], { dark: { w: 2, h: 2, planes: [new Float32Array(4)] } }, { scaleDark: false, tLight: 1, tDark: 1, flatNorm: 'mean', minFlat: 0.05 }); return false; } catch (e) { if (!/must match/.test(e.message)) return false; } try { C.calibrate(d.lights[0], { dark: md }, { scaleDark: true, tLight: 1, tDark: 1, flatNorm: 'mean', minFlat: 0.05 }); return false; } catch (e) { return /needs a master bias/.test(e.message); } })());
 };
