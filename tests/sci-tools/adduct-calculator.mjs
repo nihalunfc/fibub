@@ -16,4 +16,20 @@ export default async (check) => {
   const m = matchList([203.0530, 181.0710, 300], cands, 5);
   check('matching: 203.0530 → [M+Na]+ at +1.9 ppm, 181.0710 → [M+H]+, 300 → nothing', m[0].hits[0].label === '[M+Na]+' && near(m[0].hits[0].ppm, 1.92656, 1e-4) && m[1].hits[0].label === '[M+H]+' && m[2].hits.length === 0);
   check('matching: absolute mDa floor catches small ions', matchList([91.0395], cands, 1, 1).every((r) => r.hits[0].label === '[M+2H]2+'));
+  // Blog article cornus-iridoid-dimer-hresims-negative-ion-adducts: the six new iridoid dimers of
+  // Shi et al. (2025), Front. Chem. 13: 1558075 (CC BY 4.0), each reported as [M-H]- in negative mode.
+  const neg = A('M-H'), mzOf = (f) => adductMz(formulaMass(f), neg);
+  check('iridoid dimers: [M-H]- masses for the paper\'s three formulas', near(mzOf('C34H48O20'), 775.26662, 5e-6) && near(mzOf('C40H54O23'), 901.29831, 5e-6) && near(mzOf('C33H46O19'), 745.25605, 5e-6));
+  const obsSix = [['C34H48O20', 775.2666, -0.02], ['C40H54O23', 901.29828, -0.03], ['C40H54O23', 901.29816, -0.17], ['C33H46O19', 745.25659, 0.72], ['C33H46O19', 745.25513, -1.24], ['C33H46O19', 745.25549, -0.76]];
+  check('iridoid dimers: all six observed ions inside 1.3 ppm of the formula', obsSix.every(([f, o, p]) => near(ppmError(o, mzOf(f)), p, 0.005)));
+  check('iridoid dimers: neutral mass read back from m/z 745.25659', near(neutralFrom(745.25659, neg), 746.26387, 5e-6));
+  check('iridoid dimers: only one CHNO formula within 5 ppm of m/z 745.25659', (() => {
+    let n = 0, win = '';
+    for (let c = 20; c <= 48; c++) for (let nn = 0; nn <= 3; nn++) for (let o = 6; o <= 32; o++) for (let h = 16; h <= 84; h++) {
+      const rd = c - h / 2 + nn / 2 + 1; if (!Number.isInteger(rd) || rd < 0 || rd > 20) continue;
+      const f = `C${c}H${h}${nn ? 'N' + nn : ''}O${o}`;
+      if (Math.abs(ppmError(745.25659, mzOf(f))) <= 5) { n++; win = f; }
+    }
+    return n === 1 && win === 'C33H46O19';
+  })());
 };

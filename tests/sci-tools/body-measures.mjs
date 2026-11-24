@@ -19,6 +19,16 @@ export default async (check) => {
   check('body: WHO classes at the cut points', B.bmiClass(18.49).name.startsWith('Underweight (mild') && B.bmiClass(18.5).name === 'Normal range' && B.bmiClass(24.99).name === 'Normal range' && B.bmiClass(25).name.startsWith('Pre-obese') && B.bmiClass(30).name === 'Obese class I' && B.bmiClass(35).name === 'Obese class II' && B.bmiClass(40).name === 'Obese class III' && B.bmiClass(15.9).name.includes('severe'));
   check('body: adjusted weight factor', close(B.adjustedWeight(120, 60, 0.3), 78) && close(B.bodyMeasures(70, 170, 'male', 0.5).abw, (70 + 65.93700787401575) / 2));
   check('body: short height and low weight notes', B.bodyMeasures(40, 150, 'female').notes.length === 2 && B.bodyMeasures(50, 150, 'female').notes.length === 1 && B.bodyMeasures(70, 170, 'male').notes.length === 0);
+  // Blog article recorded-height-sex-predicted-body-weight-tidal-volume: the Devine predicted body weight behind
+  // Huehn et al. (2026), J. Intensive Care, doi:10.1186/s40560-026-00936-w (CC BY 4.0).
+  check('body: Devine rises 0.90551 kg per cm and the sexes stay 4.5 kg apart', close(B.ibw(175, 'male') - B.ibw(174, 'male'), 2.3 / 2.54) && [150, 160, 174.1, 190].every((h) => close(B.ibw(h, 'male') - B.ibw(h, 'female'), 4.5)));
+  check('body: PBW at the paper\'s reference height of 174.1 cm is 69.65 kg (men) and 65.15 kg (women)', close(B.ibw(174.1, 'male'), 69.65, 0.005) && close(B.ibw(174.1, 'female'), 65.15, 0.005));
+  check('body: the paper\'s coefficients rebuild its mL/kg slope of -0.0342 per cm', (() => {
+    const perCm = B.ibw(175, 'male') - B.ibw(174, 'male'), f = 263 / 798;
+    const pbw = (1 - f) * B.ibw(174.1, 'male') + f * B.ibw(174.1, 'female'), vkg = (1 - f) * 6.8 + f * 7.6, vt = vkg * pbw;
+    const slope = 3.98 / pbw - (vt * perCm) / pbw ** 2;
+    return close(slope, -0.0354, 5e-4) && slope > -0.0498 && slope < -0.0185 && close(vkg * perCm, 6.4, 0.005) && close(-4.5 * vkg, -31.8, 0.05);
+  })());
   const bad = (f) => { try { f(); return false; } catch { return true; } };
   check('body: bad input refused', bad(() => B.bodyMeasures(0, 170, 'male')) && bad(() => B.bodyMeasures(70, 300, 'male')) && bad(() => B.bodyMeasures(70, 170, 'male', 2)));
 };
