@@ -35,6 +35,18 @@ export default async (check) => {
   const L = searchLayout(30, r);
   check('cog: 30 search items placed inside the box', L.length === 30 && L.every((p) => p.x > 0 && p.x < 1 && p.y > 0 && p.y < 1));
 
+  // Blog article face-visual-search-absent-present-slope-ratio: a noise-free serial self-terminating session
+  // built from the identity numbers of doi:10.3390/vision9040088 (630 ms per face; an absent trial checks
+  // 400/630 of the faces). The present slope must be half the inspection time and the absent slope the paper's.
+  const INSP = 630, QUIT = 400 / 630, BASE = 1728, SER = [];
+  for (const n of [2, 4, 6]) {
+    for (let i = 0; i < 12; i++) SER.push({ setSize: n, present: true, correct: true, rt: BASE + INSP * ((i % n) + 1) });
+    for (let i = 0; i < 6; i++) SER.push({ setSize: n, present: false, correct: true, rt: BASE + INSP * QUIT * n });
+  }
+  const ser = searchSummary(SER, 150, 20000);
+  check('cog: serial self-terminating session gives present 315, absent 400, ratio 1.26984', ser.present.slope === 315 && Math.abs(ser.absent.slope - 400) < 1e-9 && Math.abs(ser.ratio - 1.2698412698412698) < 1e-12 && ser.present.n === 36 && ser.absent.n === 18);
+  check('cog: its absent trials lie exactly on the line (r2 = 1) and its intercepts are 2043 and 1728', ser.absent.r2 === 1 && ser.present.intercept === 2043 && Math.abs(ser.absent.intercept - 1728) < 1e-9);
+
   const rts = [312, 287, 401, 95, 350, 333, 2600, 298, 310].map((rt) => ({ kind: 'simple', foreperiod: 1500, correct: true, rt, early: false }));
   rts.push({ kind: 'simple', foreperiod: 2000, correct: false, rt: null, early: true });
   const q = rtSummary(rts);

@@ -21,5 +21,11 @@ export default async (check) => {
   check('leontief: example table is productive', productive(io).ok);
   check('leontief: given total output gives the same model', close(model(Z, null, REF.x).L, REF.L));
   check('leontief: random 5-sector table matches NumPy', close(model(REF.Z5, REF.f5).L, REF.L5, 1e-9));
+  // Blog article coal-phase-out-regional-output-multipliers-leontief-inverse: the two-sector table rebuilt from
+  // Table 2 of doi:10.3389/frsus.2026.1811466 must give back the paper's coal-power column.
+  const Zc = [[180807, 530057], [716093, 1584479]], fc = [629922, 3000000];
+  const ioc = model(Zc, fc), dxc = impact(ioc, [629922, 0]), jc = satellite(ioc, [2220, 5490]);
+  check('leontief: rebuilt coal-power column, multiplier 2.233056 and inverse 1.267479 / 0.965577', close([ioc.multipliers[0], ioc.L[0][0], ioc.L[1][0]], [2.2330561957509985, 1.2674791289034169, 0.9655770668475816]));
+  check('leontief: rebuilt shock gives the paper 798,413 + 608,238 of output and 1,952 jobs', close(dxc, [798412.9878370982, 608238.2371027623]) && Math.abs(dxc.reduce((t, v, i) => t + v * jc.coef[i], 0) - 1951.9434962560563) < 1e-9 && Math.abs(jc.typeI[0] - 1.8714876157348153) < 1e-12);
   check('leontief: singular I − A is caught', inverse([[1, 2], [2, 4]]) === null && (() => { try { model([[1, 0], [0, 0]], null, [1, 1]); return false; } catch { return true; } })());
 };
