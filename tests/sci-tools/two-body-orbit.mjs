@@ -24,4 +24,15 @@ export default async (check) => {
   { const c = elements(1, [1, 0], [0, 1]); check('two-body: unit circle (μ = 1, r = 1, v = 1): e = 0, a = 1, T = 2π', c.e < 1e-12 && Math.abs(c.a - 1) < 1e-12 && Math.abs(c.T - 2 * Math.PI) < 1e-12 && c.kind === 'circle'); }
   { const pb = elements(1, [1, 0], [0, Math.SQRT2]); check('two-body: escape speed √(2μ/r) gives a parabola', Math.abs(pb.e - 1) < 1e-12 && pb.kind === 'parabola'); }
   { const [C, S] = stumpff(1e-3), [C2, S2] = stumpff(-1e-3); check('two-body: Stumpff functions near zero', Math.abs(C - (1 - Math.cos(Math.sqrt(1e-3))) / 1e-3) < 1e-12 && Math.abs(S2 - (Math.sinh(Math.sqrt(1e-3)) - Math.sqrt(1e-3)) / Math.sqrt(1e-3) ** 3) < 1e-9); }
+  // New with the asteroid (4337) Arecibo article (A&A 688: L23, Table 1: a = 46.8 km, T = 32.9741 h, M = 4.3 × 10^15 kg).
+  { const G = 6.6743e-11, a = 46.8e3, T = 32.9741 * 3600, M = (4 * Math.PI ** 2 * a ** 3) / (G * T * T);
+    check('two-body: Arecibo binary, Kepler mass from 46.8 km and 32.9741 h = 4.3027 × 10^15 kg', Math.abs(M / 1e15 - 4.30270) < 1e-4);
+    const mk = (m1, m2, e) => { const mu = G * (m1 + m2), rp = a * (1 - e), vp = Math.sqrt((mu * (1 + e)) / rp); return system({ m: m1, p: [0, 0], v: [0, 0] }, { m: m2, p: [rp, 0], v: [0, vp] }); };
+    const s = mk(4.1e15, 0.2e15, 0.06);
+    check('two-body: Arecibo binary (4.1 + 0.2 × 10^15 kg, a 46.8 km, e 0.06): period 32.984 h, a 46.8 km, closest 43.99 km, farthest 49.61 km', Math.abs(s.el.T / 3600 - 32.9844) < 1e-3 && Math.abs(s.el.a / 1e3 - 46.8) < 1e-9 && Math.abs(s.el.rp / 1e3 - 43.992) < 1e-9 && Math.abs(s.el.ra / 1e3 - 49.608) < 1e-9);
+    const p = positionsAt({ m: 4.1e15, p: [0, 0], v: [0, 0] }, { m: 0.2e15, p: [a * 0.94, 0], v: [0, 2.6e-3] }, 0, G);
+    check('two-body: Arecibo primary sits 2.18 km (4.65 %) from the centre of mass, the secondary 44.6 km', Math.abs(Math.hypot(...mk(4.1e15, 0.2e15, 0).r) * 0.2 / 4.3 / 1e3 - 2.1767) < 1e-3 && Math.hypot(...p.p2) > 0);
+    check('two-body: Arecibo densities from 4.1 and 0.2 × 10^15 kg and 18.7 and 6.2 km are 1197 and 1603 kg/m3', Math.abs(4.1e15 / ((Math.PI / 6) * 18.7e3 ** 3) - 1197.5) < 0.5 && Math.abs(0.2e15 / ((Math.PI / 6) * 6.2e3 ** 3) - 1602.7) < 0.5);
+    const n = integrate({ m: 4.1e15, p: [0, 0], v: [0, 0] }, { m: 0.2e15, p: [a * 0.94, 0], v: [0, Math.sqrt((G * 4.3e15 * 1.06) / (a * 0.94))] }, T, 4000, G);
+    check('two-body: Arecibo orbit integrated directly for one period conserves energy and angular momentum to 1e-12', n.dE < 1e-12 && n.dL < 1e-12); }
 };
