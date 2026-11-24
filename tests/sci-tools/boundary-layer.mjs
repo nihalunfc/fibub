@@ -17,4 +17,13 @@ export default async (check) => {
   check('bl: Prandtl-Schlichting mixed CD at Re 1e8: 0.00211219 (NumPy)', near(s.CD, 0.0021121947, 1e-6));
   check('bl: forced laminar and turbulent plate CD', near(plateCD(1e6, 'laminar', 5e5).CD, 1.32822934 / 1000, 1e-6) && near(plateCD(1e6, 'turbulent', 5e5).CD, 0.074 * 1e6 ** -0.2, 1e-12));
   check('bl: plate shorter than the transition length stays laminar', plateCD(4e5, 'auto', 5e5).A === 0);
+  // The momentum-flux factor of Basse (2026), Fluids 11(6): 155 (CC BY 4.0). For the 1/7 power law it is 14/(9 cf);
+  // the paper's closed form with kappa = 0.39 and its fitted A = 5.7 gives 463.2 at the same friction Reynolds number.
+  {
+    const t2 = local(1, 20, 1.516e-5, 'turbulent', 5e5), utU = Math.sqrt(t2.cf / 2), Ret = (t2.delta * utU * 20) / 1.516e-5;
+    const K = 0.39, A = 5.7, L = Math.log(Ret);
+    const f = 2 / K ** 2 - (2 * A) / K + A * A + L * ((2 * A) / K - 2 / K ** 2) + (L * L) / K ** 2;
+    check('bl: 20 m/s tripped layer at x = 1 m: δ 22.09 mm, cf 0.003534, Reτ 1225', near(t2.delta, 0.0220869407, 1e-8) && near(t2.cf, 0.0035339105, 1e-8) && Math.abs(Ret - 1225) < 1);
+    check(`bl: momentum-flux factor 14/(9cf) = 440.2 within 5 % of the paper's log-law form (${f.toFixed(1)})`, near(14 / (9 * t2.cf), 440.2, 1e-3) && Math.abs(14 / (9 * t2.cf) / f - 1) < 0.05);
+  }
 };

@@ -27,4 +27,15 @@ export default async (check) => {
     check('diffusion: finite-volume error falls about 4× when cells double (second order)', Math.abs(k1 - an) / Math.abs(k2 - an) > 3.5 && Math.abs(k1 - an) / Math.abs(k2 - an) < 4.5);
     check('diffusion: agrees with an independent node-based SciPy eigen solve', rel(fdSolve(m, ge, 400).k, REF.fd_slab_node_400, 2e-7)); }
   check('diffusion: volumes', rel(volume({ kind: 'sphere', R: 10 }), 4188.790204786391, 1e-14) && volume({ kind: 'cylinder', R: 1 }) === Infinity && rel(volume({ kind: 'cylinder', R: 1, H: 2 }), 2 * Math.PI, 1e-15));
+  // The one-group plutonium-239 benchmark of El-Ajou et al. (2023), Front. Phys. 11: 1229142 (CC BY): fission 0.0816,
+  // scattering 0.225216, capture 0.019584 per cm, 2.84 neutrons per fission. Paper: D = 1.021241834 cm,
+  // B = 0.357553294 /cm, critical radius 8.7864 cm with the flux zero at the surface.
+  {
+    const Sf = 0.0816, Ss = 0.225216, Sg = 0.019584, Dp = 1 / (3 * (Sf + Ss + Sg));
+    const pu = { D: Dp, sigA: Sf + Sg, nuSigF: 2.84 * Sf }, B2 = materialB2(pu), dp = extrap(Dp);
+    const zf = criticalSize('sphere', B2, 0), phys = criticalSize('sphere', B2, dp);
+    check('diffusion: plutonium benchmark D and buckling match the paper (1.0212418 cm, 0.3575533 /cm)', rel(Dp, 1.021241834, 1e-8) && rel(Math.sqrt(B2), 0.357553294, 1e-7) && rel(kInf(pu), 2.2903225806, 1e-10));
+    check('diffusion: plutonium critical sphere 8.78636 cm (flux zero) and 6.61112 cm of metal (2.13 D)', rel(zf.R, 8.786362147, 1e-9) && rel(phys.R, 6.611117049, 1e-9));
+    check('diffusion: finite volumes make that sphere critical and k_eff at the paper’s 6.5021 cm is 0.98596', Math.abs(fdSolve(pu, extrapolated(phys, dp), 120).k - 1) < 3e-5 && rel(keff1(pu, buckling(extrapolated({ kind: 'sphere', R: 6.5021 }, dp))), 0.985964, 1e-5));
+  }
 };
