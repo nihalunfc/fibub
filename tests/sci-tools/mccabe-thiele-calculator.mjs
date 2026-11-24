@@ -13,8 +13,11 @@ export default async (check) => {
   check('mccabe: 2870 stages at that alpha reach S = 45.87', near(Math.exp(la * 2870), 45.8653532, 1e-6));
   const big = stepStages(alphaEq(a), { xF: 0.2, xD: 0.5, xB: xB, q: 1, R: Infinity }, 6000);
   check('mccabe: stepping the isotope case takes 1728 stages, fractional 1727.37', big.N === 1728 && near(big.frac, 1727.37079, 1e-4));
-  let capped = false; try { stepStages(alphaEq(a), { xF: 0.2, xD: 0.5, xB: xB, q: 1, R: Infinity }); } catch (e) { capped = /More than 300 stages/.test(e.message); }
-  check('mccabe: the page default of 300 stages stops the isotope case with a clear message', capped);
+  // The default cap was 300, which stopped every isotope case; it is 5000 now, so the page itself solves this column.
+  const dflt = stepStages(alphaEq(a), { xF: 0.2, xD: 0.5, xB: xB, q: 1, R: Infinity });
+  check('mccabe: the default cap now lets the isotope case through, 1728 stages', dflt.N === 1728);
+  let capped = false; try { stepStages(alphaEq(a), { xF: 0.2, xD: 0.5, xB: xB, q: 1, R: Infinity }, 300); } catch (e) { capped = /More than 300 stages/.test(e.message); }
+  check('mccabe: a lower cap still stops with a clear message', capped);
   const t = stepStages(alphaEq(1.01342), { xF: 0.2, xD: 0.5, xB: 0.090909, q: 1, R: Infinity });
   check('mccabe: alpha 1.01342, xD 0.5, xB 0.090909 at total reflux: 173 stages, 172.73 minimum', t.N === 173 && near(fenske(0.5, 0.090909, 1.01342), 172.73, 0.005));
 };

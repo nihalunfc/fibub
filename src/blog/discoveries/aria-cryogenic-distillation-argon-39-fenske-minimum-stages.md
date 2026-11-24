@@ -64,13 +64,14 @@ The checks in `tests/sci-tools/mccabe-thiele-calculator.mjs` run with `node test
 
 ## Check it yourself
 
-The page limits stepping to 300 stages, so it cannot take the real isotope α (it would say "More than 300 stages"). Use an α with ten times the log-volatility, which needs one tenth of the stages:
+Writing this article turned up a stage cap of 300 in the page, which refused every isotope column; it is 5,000 now, so the real α goes straight in. The scaled version below is still the quickest thing to read, because it uses an α with ten times the log-volatility and so needs one tenth of the stages:
 
 1. Open the [[mccabe-thiele-calculator]]. Under **Equilibrium from**, keep "A constant relative volatility" and type **1.01342** in **Relative volatility α**.
 2. Set **Feed, light fraction xF** to 0.2, **Distillate xD** to 0.5 and **Bottoms xB** to 0.090909.
 3. Under **Reflux** choose "Total reflux (minimum stages)".
 4. You should read "173 stages at total reflux (minimum: 172.73)", and the **Minimum stages (total reflux)** fact shows 172.73 from the Fenske equation.
 5. Multiply 172.73 by 10: that is 1727, the paper's number for the real isotope pair, because ln α is ten times smaller in the real case.
+6. Now type the real **1.0013339** in **Relative volatility α**, leaving the fractions as they are, and the page steps the full column: 1,728 stages, minimum 1,727.37.
 
 ## What researchers can use it for
 
