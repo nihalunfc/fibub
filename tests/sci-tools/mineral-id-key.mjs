@@ -27,4 +27,9 @@ export default async (check) => {
   check('mineral key: allowed misses filter', K.rank({ tests: { magnetic: 'yes' } }, tol, 0).map((x) => x.mineral.id).join() === 'magnetite' && K.rank({ tests: { magnetic: 'yes' } }, tol, 1).length === M.length);
   check('mineral key: weak magnet test also passed by magnetite; powder fizz by calcite', K.compare(M.find((x) => x.id === 'magnetite'), { tests: { 'weak-magnetic': 'yes' } }).misses === 0 && K.compare(M.find((x) => x.id === 'calcite'), { tests: { 'fizz-powder': 'yes' } }).misses === 0);
   check('mineral key: no observations → all minerals, score 0 of 0', K.rank({}).length === M.length && K.rank({}).every((x) => x.of === 0));
+  // New with the xianhuaite-(Ce) article: a new niobium mineral (hardness 5.5, density 5.23, adamantine, white streak, one cleavage, brown, non-magnetic, no fizz).
+  { const o = { H: [5.5, 5.5], SG: 5.23, lustre: 'adamantine', streak: 'white', cleavage: '1', colour: 'brown', tests: { magnetic: 'no', 'fizz-cold': 'no' } };
+    check('mineral key: a dense, white-streaked, adamantine mineral with one cleavage has no match with one miss allowed, and 11 minerals within two misses', K.rank(o, { H: 0.5, SG: 0.2 }, 1).length === 0 && K.rank(o, { H: 0.5, SG: 0.2 }, 2).length === 11);
+    check('mineral key: hardness 5.5 and density 5.23 alone give chromite, hematite and magnetite first (both match), with 5 minerals having no miss', K.rank({ H: [5.5, 5.5], SG: 5.23 }, { H: 0.5, SG: 0.2 }, 0).length === 5 && ['chromite', 'hematite', 'magnetite'].every((id, i) => K.rank({ H: [5.5, 5.5], SG: 5.23 }, { H: 0.5, SG: 0.2 }, 0)[i].mineral.id === id));
+    check('mineral key: only sillimanite has no miss at all when hardness is allowed 1 and density 2 g/cm3 either way', (() => { const r = K.rank(o, { H: 1, SG: 2 }, 0); return r.length === 1 && r[0].mineral.id === 'sillimanite'; })()); }
 };
