@@ -1,6 +1,6 @@
 ---
 title: "What 30 open cases mean for a 20-place elephant hospital"
-summary: "A 2025 study forecasts monthly workload at two Thai elephant hospitals. We put its case counts, stated capacity and Little's law together with fibub's queueing tool and find most of that workload cannot be inside the hospital."
+summary: "A 2025 study forecasts monthly workload at two Thai elephant hospitals. Little's law and fibub's queueing tool show most of that workload is not inside the hospital."
 tools: [queueing-calculator, time-series-analyser, shift-scheduler]
 updated: 2026-11-24
 sources:

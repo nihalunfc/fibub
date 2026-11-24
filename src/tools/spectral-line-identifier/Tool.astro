@@ -144,7 +144,7 @@ import Downloads from '../../components/Downloads.astro';
       const restHits = still.length ? identify(obs, 0, tol, still, med) : obs.map((o) => ({ obs: o, matches: [] }));
       const free = obs.filter((_, i) => !restHits[i].matches.some((m) => m.line.strong));
       const auto = q<HTMLSelectElement>('.sl-zmode').value === 'auto';
-      const cands = auto && shifting.length && free.length >= 2 ? findRedshift(free, shifting, -0.01, 7, 4e-4 + tol / 6000, med) : [];
+      const cands = auto && shifting.length && free.length >= 2 ? findRedshift(free, shifting, -0.01, 15, 4e-4 + tol / 6000, med) : [];
       let z = auto ? (zPick ?? cands[0]?.z ?? 0) : num(q<HTMLInputElement>('.sl-z').value);
       if (!Number.isFinite(z) || z <= -1) throw new Error('Give a redshift above −1.');
       const shiftHits = shifting.length ? identify(obs, z, tol * (1 + Math.max(0, z)), shifting, med) : obs.map((o) => ({ obs: o, matches: [] }));

@@ -1,6 +1,6 @@
 ---
 title: "Standard errors and VIF have to agree: a regression table rechecked"
-summary: "A 2026 study of friendship quality and optimism in 450 students reports both standard errors and variance inflation factors. We show with fibub's regression tool that the two cannot both be right."
+summary: "A 2026 study of friendship and optimism reports both standard errors and variance inflation factors. We show with fibub's regression tool that the two disagree."
 tools: [regression-workbench, hypothesis-tests, effect-size-converter]
 updated: 2026-11-24
 sources:

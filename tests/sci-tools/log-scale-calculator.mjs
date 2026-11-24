@@ -12,6 +12,11 @@ export default async (check) => {
   check(`log scale: International 1/4 within 0.5 % of Grosenbaugh's formula (${(100 * mx).toFixed(2)} %)`, mx < 0.005);
   const r = scaleLog({ id: 'L2', small: 16, length: 16, large: 19, mid: 17.4 }, true);
   check('log scale: Smalian, Huber, Newton in ft³', near(r.smalian, 26.921704) && near(r.huber, 26.420794) && near(r.newton, 26.587764));
+  // Blog: /blog/discoveries/log-volume-formulas-quarter-girth-huber-nepal/ (Karki et al. 2026, Scientifica).
+  const b = scaleLog({ id: 'B', small: 25, length: 2.5, large: 30, mid: 27.5 }, false);
+  check('log scale: metric 25/27.5/30 cm x 2.5 m cubic volumes', near(b.smalian, 0.1497165248976386) && near(b.huber, 0.14848934026733007) && near(b.newton, 0.14889840181076625));
+  const qg = (Math.PI * 27.5 / 4 / 100) ** 2 * 2.5; // quarter girth (Hoppus) at mid-length
+  check('log scale: Huber over quarter girth is 4/pi', Math.abs(b.huber / qg - 4 / Math.PI) < 1e-12);
   const m = scaleLog({ id: 'M', small: 30, length: 4, large: 34 }, false);
   check('log scale: metric log converted for board-foot rules, Smalian in m³', near(m.doyle, 50.04272475736553) && near(m.intl, 74.40099478383681) && near(m.scrib, 67.73554229523158) && near(m.smalian, 0.3229557247890308) && Number.isNaN(m.huber));
 };

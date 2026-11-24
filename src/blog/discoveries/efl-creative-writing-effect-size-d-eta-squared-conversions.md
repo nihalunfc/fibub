@@ -1,6 +1,6 @@
 ---
 title: "How to read a Cohen's d of 4.3, and what η² = 0.71 to 0.89 means"
-summary: "A 2026 study of e-portfolio creative writing reports two class means and large eta squared values. We convert them into every standard effect size, with intervals, and ask what such a gap implies."
+summary: "A 2026 creative-writing study reports two class means and large eta squared values. We convert them into every standard effect size and ask what the gap implies."
 tools: [effect-size-converter, hypothesis-tests, difference-in-differences]
 updated: 2026-11-24
 sources:

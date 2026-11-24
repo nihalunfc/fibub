@@ -15,5 +15,16 @@ export default async (check) => {
   check(`stomata: example suggestion finds the 23 drawn stomata (${b.length})`, e.stomata.length === 23 && b.length === 23 && hit && e.cells.length === 37);
   // Density: 480 × 320 px at 2 px per µm = 0.0384 mm², so 23 / 0.0384 = 598.96 per mm².
   check('stomata: example density 598.96 per mm²', near(23 / ((240 * 160) / 1e6), 598.958, 1e-3));
+  // Blog: /blog/discoveries/maize-hybrid-stomatal-density-leaf-layers/ (Zhang et al. 2025, Front. Plant Sci.).
+  // The paper's square fields, and the counting noise of 87.21 stomata per mm² scattered at random over 10 × 10 mm.
+  check('stomata: 767 µm and 298 µm square fields in mm²', near(0.767 * 0.767, 0.588289, 1e-12) && near(0.298 * 0.298, 0.088804, 1e-12));
+  {
+    const pts = P.placePoints('random', 10, 10, { n: 8721, rows: 1, cols: 1, seed: 1442686, border: 0 });
+    const side = 0.767, k = Math.floor(10 / side), box = new Map();
+    for (const [x, y] of pts) { const i = Math.floor(x / side), j = Math.floor(y / side); if (i < k && j < k) box.set(i + ',' + j, (box.get(i + ',' + j) ?? 0) + 1); }
+    const counts = []; for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) counts.push((box.get(i + ',' + j) ?? 0) / (side * side));
+    const s = P.summary(counts, 'sd');
+    check(`stomata: 169 simulated 350x fields give 87.0 +/- 12.5 per mm2 (${s.mean.toFixed(2)} +/- ${s.sd.toFixed(2)})`, counts.length === 169 && near(s.mean, 86.99383261101163, 1e-9) && near(s.sd, 12.53844717403116, 1e-9));
+  }
   check('stomata: blobs touching the edge are left out unless asked', P.blobs(new Uint8Array([1, 1, 0, 0, 0, 0, 0, 1, 1]), 3, 3, 1, 9).length === 0 && P.blobs(new Uint8Array([1, 1, 0, 0, 0, 0, 0, 1, 1]), 3, 3, 1, 9, true).length === 2);
 };

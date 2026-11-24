@@ -1,6 +1,6 @@
 ---
-title: "A pretest-posttest class experiment is a 2 x 2 difference-in-differences"
-summary: "A 2026 study of digital inquiry lessons in Kazakhstan reports four group means. We turn them into a difference-in-differences estimate, and show what the paper's own change scores imply about its data."
+title: "A pretest-posttest class study is a 2 x 2 difference-in-differences"
+summary: "A 2026 study of digital inquiry lessons reports four group means. We turn them into a difference-in-differences estimate and check its change scores."
 tools: [difference-in-differences, effect-size-converter, hypothesis-tests]
 updated: 2026-11-24
 sources:
