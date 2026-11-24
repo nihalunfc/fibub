@@ -21,4 +21,20 @@ export default async (check) => {
   check('peaks: reading pasted spectra', typeof readSpectrum([[1], [2]]) === 'string' && readSpectrum(Array.from({ length: 12 }, (_, i) => [i * 2, 5])).x[3] === 6 && typeof readSpectrum(Array.from({ length: 12 }, (_, i) => [5 - i, 5])) === 'string');
   check('peaks: errors for an empty or too narrow region', fitPeaks(x, y, 380, 460, [], 1).ok === false && fitPeaks(x, y, 400, 408, [404, 405], 2).ok === false);
   check('peaks: smoothing keeps the total of a flat line and FWHM = 2.3548 σ', smooth([3, 3, 3, 3, 3], 2).every((v) => v === 3) && near(FWHM, 2.3548200450309493, 1e-15));
+  // Pinned by the blog article on microcalorimeter gamma spectrometry
+  // (src/blog/discoveries/microcalorimeter-gamma-doublet-peak-fitting.md): a noise-free doublet on an energy axis.
+  check('peaks: noise-free 828 eV doublet recovered exactly at 100 eV and 550 eV width', (() => {
+    const bin = 0.01, E = [];
+    for (let e = 131.4; e <= 134.8 + 1e-9; e += bin) E.push(+e.toFixed(2));
+    const g = (e, A, mu, sg) => ((A * bin) / (sg * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((e - mu) / sg) ** 2);
+    return [0.1, 0.55].every((fw) => {
+      const sg = fw / FWHM, yy = E.map((e) => 20 + g(e, 12000, 132.687, sg) + g(e, 3000, 133.515, sg));
+      const f = fitPeaks(E, yy, 0, E.length - 1, [132.687, 133.515], 1);
+      if (!f.ok) return false;
+      const [a, b] = f.peaks;
+      return Math.abs(a.mu - 132.687) < 1e-6 && Math.abs(b.mu - 133.515) < 1e-6
+        && Math.abs(a.fwhm - fw) < 1e-6 && Math.abs(b.fwhm - fw) < 1e-6
+        && Math.abs(a.area - 12000) < 1e-3 && Math.abs(b.area - 3000) < 1e-3;
+    });
+  })());
 };

@@ -16,4 +16,17 @@ export default async (check) => {
   check('fire weather: example last day matches xclim', near(last.ffmc, 84.821901) && near(last.dmc, 11.875516) && near(last.dc, 50.940257) && near(last.isi, 7.247944) && near(last.bui, 15.005556) && near(last.fwi, 9.38879));
   check('fire weather: example peak FWI and mean DSR', near(Math.max(...ex.map((d) => d.fwi)), 15.45164646436982) && near(ex.reduce((s, d) => s + d.dsr, 0) / 30, 0.7145806050448107));
   check('fire weather: FFMC stays in 0 to 101, BUI 0 when both codes are 0, FWI = B below 1', ffmc(101, 40, 5, 60, 0) <= 101 && bui(0, 0) === 0 && near(fwi(1, 4), 0.1 * (0.626 * 4 ** 0.809 + 2)) && near(dsr(10), 0.0272 * 10 ** 1.77));
+  // The hour of day the weather is read from changes every code: Benoit et al. (2026), Earth System Science Data 18:
+  // 5995-6015, doi:10.5194/essd-18-5995-2026 (CC BY 4.0), which recomputes Canada's FWI at each cell's solar noon.
+  // One July day from the paper's start-up codes (FFMC 85, DMC 6, DC 15, the defaults here), read at solar noon and
+  // then as a single 18:00 UTC field would read it 96 min earlier in the west and 106 min later in the east.
+  const day = (T, H, W) => fwiSeries([{ month: 7, T, H, W, rain: 3.1 }])[0];
+  const noon = day(20.6, 36, 9.7), early = day(18.2, 43, 8.6), late = day(22.3, 31, 10.4);
+  check('fire weather: solar-noon day from the paper start-up codes',
+    near(noon.ffmc, 77.3982218976, 1e-9) && near(noon.isi, 1.4630010388, 1e-9) && near(noon.bui, 7.3806499466, 1e-9) && near(noon.fwi, 0.7540319912, 1e-9));
+  check('fire weather: the same day read 96 min earlier gives lower codes',
+    near(early.ffmc, 73.3580548027, 1e-9) && near(early.fwi, 0.5439865445, 1e-9) && early.fwi < noon.fwi);
+  check('fire weather: the same day read 106 min later gives higher codes',
+    near(late.ffmc, 80.2129486117, 1e-9) && near(late.fwi, 1.1992481823, 1e-9) && late.fwi > noon.fwi);
+  check('fire weather: DSR of the published peak monthly means', near(dsr(18), 4.5331619844, 1e-9) && near(dsr(26), 8.6910396238, 1e-9));
 };

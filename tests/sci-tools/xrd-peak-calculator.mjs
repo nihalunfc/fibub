@@ -58,4 +58,19 @@ export default async (check) => {
   check('xrd: example indexes as FCC, a = 4.0000 Å', r[0].lattice === 'fcc' && near(r[0].a, 4, 0.0005) && r[0].unindexed === 0 && r[0].missing.length === 0);
   check('xrd: Gaussian and Lorentzian areas', near(X.peakArea('gauss', 1, 1), 1.0644670194312262, 1e-12) && near(X.peakArea('lorentz', 1, 1), Math.PI / 2, 1e-12));
   check('xrd: flat scan finds no peaks', X.findPeaks([0, 1, 2, 3, 4, 5, 6, 7, 8], [5, 5, 5, 5, 5, 5, 5, 5, 5]).peaks.length === 0);
+
+  // Blog article nacl-powder-xrd-fcc-indexing-lattice-parameter-coherence-length: the nine NaCl reflections printed
+  // by AlGharram et al. (2026), Compounds 6(3): 48, at the paper's λ = 1.542 Å.
+  {
+    const lam = 1.542, tt = [27.4, 31.7, 45.5, 53.9, 56.5, 66.3, 73.1, 75.4, 84.1];
+    const s = tt.map((t) => 1 / X.dFromTwoTheta(t, lam) ** 2);
+    const rr = X.rankCubic(s, 0.005, 1 / X.dFromTwoTheta(20, lam) ** 2);
+    const fcc = rr[0], sc = rr.find((f) => f.lattice === 'sc'), dia = rr.find((f) => f.lattice === 'diamond');
+    check('xrd: NaCl nine lines index as FCC, a = 5.6404 Å, nothing unindexed or missing', fcc.lattice === 'fcc' && near(fcc.a, 5.6404, 0.0001) && fcc.unindexed === 0 && fcc.missing.length === 0 && fcc.lines.map((l) => l.hkl).join('|') === '111|200|220|311|222|400|331|420|422');
+    check('xrd: NaCl as simple cubic fits every line but needs 11 absent reflections; diamond leaves three lines unindexed', sc.unindexed === 0 && sc.missing.length === 11 && dia.unindexed === 3);
+    // Peak widths rebuilt from the paper's own Williamson-Hall line β cosθ = 0.00299 + 0.00082 (4 sinθ).
+    const beta = tt.map((t) => { const th = ((t / 2) * Math.PI) / 180; return ((0.00299 + 0.00082 * 4 * Math.sin(th)) / Math.cos(th) / Math.PI) * 180; });
+    const w = X.williamsonHall(tt.map((t, i) => ({ tt: t, beta: beta[i] })), lam, 0.9);
+    check('xrd: those widths give back the paper\'s 46.4 nm and 8.2e-4 strain, and Scherrer sizes falling 36.8 to 26.8 nm', near(w.size / 10, 46.41, 0.01) && near(w.strain, 0.00082, 1e-12) && near(X.scherrer(tt[0], beta[0], lam, 0.9) / 10, 36.8, 0.05) && near(X.scherrer(tt[8], beta[8], lam, 0.9) / 10, 26.8, 0.05));
+  }
 };
