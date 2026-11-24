@@ -28,4 +28,8 @@ export default async (check) => {
   check('loadcomb: bad number explained', msg.includes('not a number'));
   const lp = LC.parseLoads([['Load', 'M'], ['W', '+/-10'], ['X', '']]);
   check('loadcomb: "+/-" also marks reversible, blank is zero', lp.loads[0].rev[0] && lp.loads[0].values[0] === 10 && lp.loads[1].values[0] === 0);
+  // New with the GFRP beam article (Reddy et al. 2023, E3S 391: 01213): service moments D = 76 and L = 47 kN.m.
+  const gf = LC.parseLoads(parseTable('Load, M (kN·m)\nD, 76\nL, 47'));
+  const gr = LC.evaluate(gf, LC.parseCombos('A: 1.2D + 1.6L\nB: 1.4D\nC: 1.35D + 1.5L\nS: D + L', ['D', 'L']));
+  check('loadcomb: beam moments 1.2D + 1.6L = 166.4, 1.4D = 106.4, 1.35D + 1.5L = 173.1, D + L = 123 kN·m', [166.4, 106.4, 173.1, 123].every((v, i) => near(gr.rows[i].values[0], v, 1e-9)) && gr.max[0].row === 2 && near(gr.max[0].value, 173.1, 1e-9));
 };

@@ -67,5 +67,12 @@ export default async (check) => {
   throws('regression: logistic needs two values', () => design(readTable('y,a\n1,1\n2,2\n3,3\n1,4'), { kind: 'logistic', y: 'y', xs: ['a'], intercept: true }), /exactly two values/);
   throws('regression: text response refused for linear', () => design(readTable('y,a\nx,1\nz,2\nx,3'), { kind: 'linear', y: 'y', xs: ['a'], intercept: true }), /has text in it/);
   throws('regression: header row needed', () => readTable('1,2\n3,4\n5,6'), /column names/);
+  // New with the friendship-quality article: for standardised coefficients, SE(beta) = sqrt((1 - R2)/df) * sqrt(VIF).
+  { const ex = EXAMPLES[0], t = readTable(ex.text), f = ols(design(t, { kind: 'linear', y: ex.y, xs: ex.xs, intercept: true }));
+    const sd = (name) => { const i = t.headers.indexOf(name), c = t.rows.map((r) => +r[i]), m = c.reduce((a, b) => a + b, 0) / c.length; return Math.sqrt(c.reduce((s, v) => s + (v - m) ** 2, 0) / (c.length - 1)); };
+    const base = Math.sqrt((1 - f.r2) / f.dfResid), sdy = sd(ex.y);
+    const ok = ['fertiliser_g', 'water_ml', 'light_h'].every((n) => { const c = f.coefs.find((x) => x.name === n); return Math.abs(c.se * sd(n) / sdy - base * Math.sqrt(c.vif)) < 1e-12; });
+    check('regression: plant fit R² 0.8555 on 26 df, base 0.07454, and SE(beta) = base x sqrt(VIF) for every predictor',
+      ok && Math.abs(f.r2 - 0.8555) < 5e-5 && f.dfResid === 26 && Math.abs(base - 0.07454) < 5e-6 && Math.abs(f.coefs.find((x) => x.name === 'fertiliser_g').vif - 1.147) < 5e-4); }
   { const q = qqPoints([3, 1, 2]); check('regression: Q-Q points use Blom positions', Math.abs(q.x[1]) < 1e-12 && q.y.join() === '1,2,3' && Math.abs(q.x[2] - 0.8694237732888861) < 1e-12); }
 };

@@ -23,4 +23,10 @@ export default async (check) => {
   { const t = PF.thermo([{ E: 5e-19, g: 1 }, { E: 5.01e-19, g: 1 }], 1); check('partition: huge energies do not overflow', Number.isFinite(t.lnZ) && near(t.p[0], 1, 1e-9)); }
   { const r = PF.parseLevels('energy, g\n0, 1\n100, 3\n', 1); check('partition: reads a header and energy, degeneracy lines', !r.error && r.levels.length === 2 && r.levels[1].g === 3 && r.skipped === 1); }
   check('partition: bad lines give messages', !!PF.parseLevels('0 1\nabc', 1).error && !!PF.parseLevels('0 -2', 1).error && !!PF.parseLevels('', 1).error);
+  { // New with the BCl article: the paper's printed vibrational levels plus a rigid rotor and Sackur-Tetrode translation.
+    const lv = [418.228, 1249.181, 2071.965, 2886.579, 3693.023, 4491.297], rot = PF.thermo(toJ(PF.presets.rotor(0.68379, 100)), 300), vib = PF.thermo(lv.map((E) => ({ E: E * cm, g: 1 })), 300);
+    const M = (11.0093054 + 34.96885268) * 1.66053906892e-27, trans = 8.314462618 * (Math.log(((2 * Math.PI * M * PF.KB * 300) / PF.H ** 2) ** 1.5 * (PF.KB * 300) / 1e5) + 2.5);
+    check('partition: BCl rotor (B 0.68379 cm⁻¹) at 300 K gives 55.874 J/(mol K); first six levels give vibrational S 0.7846', near(rot.S * PF.NA, 55.87397, 1e-6) && near(vib.S * PF.NA, 0.784587, 1e-5));
+    check('partition: BCl translation + rotation + vibration = 213.386 J/(mol K) at 300 K and 0.1 MPa', near(trans + (rot.S + vib.S) * PF.NA, 213.386, 1e-4));
+  }
 };

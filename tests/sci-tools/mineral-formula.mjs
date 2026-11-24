@@ -44,4 +44,29 @@ export default async (check) => {
   let msg = ''; try { readAnalyses(parseTable('Name,SiO2,MgO\nA,40,x'), num); } catch (e) { msg = e.message; }
   check('mineral: bad value message', msg.includes('"x" under MgO'));
   check('mineral: presets', P.pyroxene.O === 6 && P.pyroxene.cat === 4 && P.garnet.O === 12 && P.garnet.cat === 8 && P.amphibole.O === 23 && P.olivine.O === 4);
+
+  // New with src/blog/discoveries/guinadji-websterite-pyroxene-end-members-mg-number.md: three stoichiometric
+  // analyses written by fibub to the mid-range end-members of Kagarabi et al. (2025), Mineralogia 56 (CC BY),
+  // for the Guinadji websterite. Not the paper's microprobe data.
+  {
+    const near2 = (a, b, tol) => Math.abs(a - b) <= tol;
+    const di = { SiO2: 52.48, TiO2: 0.72, Al2O3: 2.54, Cr2O3: 0.34, FeO: 5.33, MnO: 0.32, MgO: 15.50, CaO: 22.49, Na2O: 0.28 };
+    const en = { SiO2: 54.61, TiO2: 0.37, Al2O3: 1.42, Cr2O3: 0.18, FeO: 14.17, MnO: 0.40, MgO: 28.09, CaO: 0.77 };
+    const pl = { SiO2: 53.02, Al2O3: 29.99, CaO: 12.35, Na2O: 4.44, K2O: 0.19 };
+    const fd = formula(di, 6, { fe: 'droop', T: 4, mineral: 'pyroxene' });
+    const fe = formula(en, 6, { fe: 'droop', T: 4, mineral: 'pyroxene' });
+    const fp = formula(pl, 8, { fe: 'fe2', T: 5, mineral: 'feldspar' });
+    const em = (f) => Object.fromEntries(f.endMembers.map((e) => [e.name, e.value]));
+    check(`mineral: Guinadji diopside gives 4.000 cations on 6 O with no Fe³⁺ (${fd.sumCat.toFixed(4)})`, near2(fd.sumCat, 4, 5e-4) && near2(fd.fe3, 0, 1e-12) && near2(fd.sumO, 6, 1e-9));
+    check(`mineral: Guinadji diopside gives Wo 46.4 En 44.5 Fs 9.1 and Mg# 83.83 (${fd.mgNum.toFixed(2)})`, near2(em(fd).Wo, 46.40, 0.05) && near2(em(fd).En, 44.49, 0.05) && near2(em(fd).Fs, 9.11, 0.05) && near2(fd.mgNum, 83.83, 0.01));
+    check(`mineral: Guinadji enstatite gives Wo 1.5 En 76.3 Fs 22.2 and Mg# 77.94 (${fe.mgNum.toFixed(2)})`, near2(fe.sumCat, 4, 5e-4) && near2(fe.fe3, 0, 1e-4) && near2(em(fe).Wo, 1.50, 0.05) && near2(em(fe).En, 76.29, 0.05) && near2(em(fe).Fs, 22.21, 0.05) && near2(fe.mgNum, 77.94, 0.01));
+    check(`mineral: Guinadji labradorite gives 5.000 cations on 8 O and An 59.9 (${em(fp).An.toFixed(2)})`, near2(fp.sumCat, 5, 5e-4) && near2(fp.charge, 16, 0.01) && near2(em(fp).An, 59.92, 0.05) && near2(em(fp).Or, 1.10, 0.05));
+    // Both pyroxenes' En/(En + Fs) sits at the bottom of the paper's Mg# range, as it must when Fe³⁺ is near zero.
+    check('mineral: En/(En + Fs) is 83.0 and 77.6, just below the paper\'s Mg# ranges', near2((100 * em(fd).En) / (em(fd).En + em(fd).Fs), 83.0, 0.2) && near2((100 * em(fe).En) / (em(fe).En + em(fe).Fs), 77.5, 0.2));
+    // The ferric-iron trap: one wt% less SiO2 and nothing else changed.
+    const bad = formula({ ...di, SiO2: 51.50 }, 6, { fe: 'droop', T: 4, mineral: 'pyroxene' });
+    const badFe2 = formula({ ...di, SiO2: 51.50 }, 6, { fe: 'fe2', T: 4, mineral: 'pyroxene' });
+    check(`mineral: 1 wt% less SiO2 makes charge balance call 21.9 % of the iron ferric (${(100 * bad.fe3 / (bad.fe3 + bad.fe2)).toFixed(1)} %)`, near2((100 * bad.fe3) / (bad.fe3 + bad.fe2), 21.9, 0.1) && near2(badFe2.sumCat, 4.0121, 5e-4));
+    check(`mineral: that raises Mg# to 86.91 while Fs stays at 9.11 (${bad.mgNum.toFixed(2)}, ${em(bad).Fs.toFixed(2)})`, near2(bad.mgNum, 86.91, 0.01) && near2(em(bad).Fs, 9.11, 0.02) && near2(badFe2.mgNum, 83.83, 0.01));
+  }
 };

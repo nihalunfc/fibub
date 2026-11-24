@@ -32,4 +32,7 @@ export default async (check) => {
   check('road: same-sign grades have no turning point', RD.verticalCurve(2, 5, 100, 0, 0).turn === null && !RD.verticalCurve(2, 5, 100, 0, 0).crest);
   const gr = RD.gradient(0, 10, 250, 15);
   check('road: gradient 2 %, 1 in 50, 1.1458°', near(gr.percent, 2, 1e-12) && near(gr.oneIn, 50, 1e-9) && near(gr.angle, Math.atan(0.02) * 180 / Math.PI, 1e-12));
+  // New with the blog article on Tottadi and Mehar (2024), Front. Future Transp. 5: 1260051: V85 = 78.5 − 215.19/√R gives
+  // 56.8 km/h on a 98 m curve; with 7 % superelevation drivers need side friction 0.189, and 0.15 would need R 115.3 m.
+  check('road: 98 m curve at 56.8 km/h, e 0.07: f 0.1889, minimum radius with f 0.15 is 115.35 m, degree 11.69° per 20 m', near(RD.frictionNeeded(56.8, 98, 0.07), 0.188938, 1e-5) && near(RD.minRadius(56.8, 0.07, 0.15), 115.3453, 1e-3) && near(RD.circularCurve(98, 40, 1250).Dc, 11.69302, 1e-4));
 };

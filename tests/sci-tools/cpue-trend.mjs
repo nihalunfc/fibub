@@ -16,4 +16,12 @@ export default async (check) => {
   check('CPUE: zeros kept with a constant added', z.n === 120 && near(z.s, 0.536701383153151) && all(z.years.map((y) => y.index), [2.49520431, 3.56601106, 3.67858344, 4.23713876, 2.87106578, 2.50628094, 2.63357946, 2.755956, 2.11973893, 2.4101632]) && near(z.trend.pct, -4.130164503444378));
   let msg = ''; try { cpueIndex([{ year: 1, catch: 5, effort: 1, f: ['A'] }, { year: 1, catch: 6, effort: 1, f: ['A'] }, { year: 2, catch: 3, effort: 1, f: ['B'] }, { year: 2, catch: 4, effort: 1, f: ['B'] }], ['v'], 'drop'); } catch (e) { msg = e.message; }
   check('CPUE: confounded year and factor is reported', msg.includes('confounded'));
+  // New with the European eel article: a noise-free log-linear series must give back exactly 100 x (exp(slope) - 1) % a year, for
+  // the pooled and the steepest and flattest survey slopes of the paper (-0.10371, -0.3335 and +0.000995 a year).
+  for (const [b, want] of [[-0.10371, -9.8513], [-0.3335, -28.3588], [0.000995, 0.0995]]) {
+    const recs = []; for (let y = 1991; y <= 2023; y++) for (let k = 0; k < 2; k++) recs.push({ year: y, catch: 8 * Math.exp(b * (y - 1991)), effort: 1, f: [] });
+    const t = cpueIndex(recs, [], 'drop').trend;
+    check(`CPUE: noise-free slope ${b} a year gives ${want} % a year`, Math.abs(t.pct - want) < 5e-4 * Math.max(1, Math.abs(want)) && Math.abs(t.hi - t.lo) < 1e-6);
+  }
+  check('CPUE: a slope of -0.10371 halves CPUE in 6.68 years and cuts it tenfold in 22.2', Math.abs(Math.log(2) / 0.10371 - 6.683) < 1e-3 && Math.abs(Math.log(10) / 0.10371 - 22.20) < 1e-2);
 };

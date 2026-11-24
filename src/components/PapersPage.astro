@@ -1,0 +1,70 @@
+---
+// One page of the public record of research papers fibub has checked (/blog/papers/).
+import Base from '../layouts/Base.astro';
+import { collectionLd } from '../lib/seo';
+import { paperTotals, papersPageUrl, PAPERS_PER_PAGE, type PaperRow } from '../lib/papers';
+import '../styles/area.css';
+interface Props { rows: PaperRow[]; page: number }
+const { rows, page } = Astro.props;
+const pages = Math.max(1, Math.ceil(rows.length / PAPERS_PER_PAGE));
+const items = rows.slice((page - 1) * PAPERS_PER_PAGE, page * PAPERS_PER_PAGE);
+const t = paperTotals(rows);
+const name = 'Research papers we have checked';
+const blurb = `Every open-access paper fibub's Discoveries have analysed, with the free tool that checked its numbers. ${t.papers} papers so far, each with its DOI and licence.`;
+const fmt = (n: number) => n.toLocaleString('en');
+---
+<Base title={page > 1 ? `${name}, page ${page} | Blog` : `${name} | Blog`} description={blurb} ld={collectionLd(name, blurb, papersPageUrl(page), [{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: 'Discoveries', url: '/blog/discoveries/' }, { name: 'Papers', url: '/blog/papers/' }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / <a href="/blog/discoveries/">Discoveries</a> / {page > 1 ? <><a href="/blog/papers/">Papers</a> / Page {page}</> : 'Papers'}</div>
+  <div class="ar-head">
+    <h1>{name}{page > 1 && <small class="pp-page"> page {page} of {pages}</small>}</h1>
+    <p class="lead">Every paper below has its own <a href="/blog/discoveries/">Discoveries</a> article, where a fibub tool recomputes, fits or simulates its key numbers, and shows how you can check them yourself. Each paper is credited to its authors and journal, with its DOI and licence. Only openly licensed papers (CC BY or similar) are used; preprints are marked.</p>
+  </div>
+  <dl class="pp-totals">
+    <div><dt>Papers checked</dt><dd>{fmt(t.papers)}</dd></div>
+    <div><dt>Peer-reviewed</dt><dd>{fmt(t.reviewed)}</dd></div>
+    <div><dt>Preprints</dt><dd>{fmt(t.preprints)}</dd></div>
+    <div><dt>Journals</dt><dd>{fmt(t.journals)}</dd></div>
+    <div><dt>Tools used</dt><dd>{fmt(t.tools)}</dd></div>
+    <div><dt>Subjects</dt><dd>{fmt(t.subjects)}</dd></div>
+  </dl>
+  <p class="pp-dl">The whole list as a spreadsheet: <a href="/blog/papers.csv" download>papers.csv</a>. Newest first; No. counts from the first paper we checked.</p>
+  <div class="pp-wrap">
+    <table class="pp">
+      <thead><tr><th>No.</th><th>Paper</th><th>Checked with</th><th>Licence</th></tr></thead>
+      <tbody>
+        {items.map((r) => (
+          <tr>
+            <td>{r.n}</td>
+            <td><a href={r.article}>{r.title}</a><br /><small>{r.authors}. <i>{r.journal}</i>, {r.year}{!r.reviewed && ' · preprint'}{r.doi && <> · <a href={`https://doi.org/${r.doi}`} rel="noopener">doi:{r.doi}</a></>}</small></td>
+            <td>{r.toolUrl ? <a href={r.toolUrl}>{r.toolName}</a> : r.toolName}</td>
+            <td>{r.licence}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  {pages > 1 && (
+    <nav class="pp-pager" aria-label="Pages">
+      {page > 1 && <a href={papersPageUrl(page - 1)} rel="prev">← Newer</a>}
+      {Array.from({ length: pages }, (_, i) => i + 1).map((n) => n === page ? <span aria-current="page">{n}</span> : <a href={papersPageUrl(n)}>{n}</a>)}
+      {page < pages && <a href={papersPageUrl(page + 1)} rel="next">Older →</a>}
+    </nav>
+  )}
+</Base>
+<style>
+  .pp-page { font-size: 16px; font-weight: 400; color: var(--muted); }
+  .pp-totals { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 14px 0; max-width: 760px; }
+  .pp-totals div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+  .pp-totals dt { font-size: 13px; color: var(--muted); }
+  .pp-totals dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; }
+  .pp-dl { font-size: 14px; color: var(--muted); }
+  .pp-wrap { max-width: 900px; }
+  .pp { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .pp th, .pp td { text-align: left; vertical-align: top; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+  .pp td:first-child { color: var(--muted); white-space: nowrap; }
+  .pp small { color: var(--muted); overflow-wrap: anywhere; }
+  @media (max-width: 640px) { .pp th:nth-child(4), .pp td:nth-child(4) { display: none; } .pp { font-size: 13px; } }
+  .pp-pager { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 8px; }
+  .pp-pager a, .pp-pager span { min-width: 38px; text-align: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; text-decoration: none; color: var(--ink); background: var(--surface); }
+  .pp-pager span { background: var(--accent); border-color: var(--accent); color: var(--bg, #fff); font-weight: 700; }
+</style>

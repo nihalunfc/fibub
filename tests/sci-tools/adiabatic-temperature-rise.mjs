@@ -18,4 +18,11 @@ export default async (check) => {
   check('adiabatic: zero conversion keeps the feed temperature', near(adiabatic(sp, 350, 0).T, 350, 1e-8));
   check('adiabatic: polynomial cp integral', near(cpInt({ cp: [10, 0.1, 1e-4, 1e-7] }, 300, 600), 10 * 300 + 0.05 * (600 ** 2 - 300 ** 2) + (1e-4 / 3) * (600 ** 3 - 300 ** 3) + (1e-7 / 4) * (600 ** 4 - 300 ** 4), 1e-8));
   check('adiabatic: reader errors', !!readSpecies('A, -1, 1, 0, 10, 20').error && !!readSpecies('A, -1, 1, 0, 0, 20\nB, 1, 0, -5, 10, 20').error && !readSpecies('A, -1, 1, 0, 10, 20\nB, 1, 0, -5, 10, 20').error);
+  // New with the nitration thermal-risk article (Sheng et al. 2025, Molecules 30: 2939): a lumped batch of mass m (g)
+  // and cp (kJ/kg/K) releasing Q (kJ) warms by Q / (m cp) (closed form).
+  const lump = (m, cp, Q) => readSpecies(`batch, -1, 1, 0, ${m}, ${m * cp}\nreleased, 1, 0, ${-Q}, ${m}, ${m * cp}`).species;
+  for (const [m, cp, Q, Tp] of [[891.33, 1.25, 91.2, 27.5], [1000, 1.31, 258.25, 30], [1400, 1.6, 9.94, 55], [321.8, 1.99, 0.78, 55]]) {
+    const want = Q / ((m / 1000) * cp), s2 = lump(m, cp, Q);
+    check(`adiabatic: lumped batch ${m} g, cp ${cp}, ${Q} kJ rises ${want.toFixed(3)} K (Q / m cp)`, near(adiabatic(s2, Tp + 273.15, 1).T - Tp - 273.15, want, 1e-6) && near(quickRise(s2, Tp + 273.15, 1), want, 1e-6));
+  }
 };

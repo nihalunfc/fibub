@@ -47,4 +47,24 @@ export default async (check) => {
   let msg = ''; try { randomSplit(5, 0.6, 0.4, 1); } catch (e) { msg = e.message; } check('train-test-splitter: no rows left for training is refused', msg.includes('no rows for training'));
   msg = ''; try { groupKfold(['a', 'b'], 3); } catch (e) { msg = e.message; } check('train-test-splitter: fewer groups than folds is refused', msg.includes('fewer than 3'));
   check('train-test-splitter: example has 40 rows and 6 columns', EXAMPLE.split('\n').length === 41 && EXAMPLE.split('\n')[0].split(',').length === 6);
+  // Blog article slice-level-versus-subject-level-cross-validation-leakage: the shape of the MRI cohort in Applied
+  // Sciences 16(9): 4338 (CC BY), 347 subjects and 86,437 slices. A record-wise 10-fold split leaks every subject
+  // into every fold; a grouped one leaks none.
+  {
+    const NS = 347, N = 86437, k = 10, base = Math.floor(N / NS), extra = N - base * NS;
+    const subj = [];
+    for (let s = 0; s < NS; s++) for (let j = 0; j < base + (s < extra ? 1 : 0); j++) subj.push(`S${s}`);
+    check('train-test-splitter: the cohort is 86,437 rows of 249 or 250 slices each', subj.length === N && base === 249 && extra === 34);
+    const rw = kfold(N, k, 7), both = [];
+    for (let f = 0; f < k; f++) {
+      const inF = new Set(), outF = new Set();
+      subj.forEach((s, i) => (rw[i] === f ? inF : outF).add(s));
+      both.push([...inF].filter((s) => outF.has(s)).length);
+    }
+    check('train-test-splitter: a slice-level 10-fold split puts all 347 subjects on both sides of every fold', both.every((v) => v === NS));
+    const gw = groupKfold(subj, k), first = new Map(), sizes = new Array(k).fill(0), groups = Array.from({ length: k }, () => new Set());
+    let split = 0;
+    subj.forEach((s, i) => { if (!first.has(s)) first.set(s, gw[i]); else if (first.get(s) !== gw[i]) split++; sizes[gw[i]]++; groups[gw[i]].add(s); });
+    check('train-test-splitter: a grouped 10-fold split keeps every subject whole, 34 to 35 per fold, 8,470 to 8,719 slices', split === 0 && Math.min(...groups.map((g) => g.size)) === 34 && Math.max(...groups.map((g) => g.size)) === 35 && Math.min(...sizes) === 8470 && Math.max(...sizes) === 8719);
+  }
 };

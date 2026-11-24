@@ -101,8 +101,27 @@ export function straggled(curve: { depth: number; S: number }[], R: number, sigm
     const t = (r - rr[lo]) / (rr[hi] - rr[lo] || 1);
     return ss[lo] + t * (ss[hi] - ss[lo]);
   };
-  const n = 80, ws: number[] = [], us: number[] = [];
-  for (let i = 0; i <= n; i++) { const u = -4 + (8 * i) / n; us.push(u); ws.push(Math.exp(-u * u / 2) * (i === 0 || i === n ? 1 : i % 2 ? 4 : 2)); }
-  const W = ws.reduce((a, b) => a + b, 0);
-  return depths.map((z) => (sigma > 0 ? us.reduce((s, u, i) => s + ws[i] * f(R + u * sigma - z), 0) / W : f(R - z)));
+  // Average over the Gaussian spread of ranges, integrating in residual range r (not in u): the pristine
+  // loss goes as r^(1/1.75 - 1) near the end of the range, so a fixed grid in u straddles the singularity
+  // differently for each depth and made the straggled peak jump with the depth grid. Over a stretch that
+  // reaches r = 0 we substitute r = s^4, which makes the integrand smooth there.
+  const g = (u: number) => Math.exp((-u * u) / 2);
+  const simpson = (a: number, b: number, m: number, fn: (x: number) => number) => {
+    if (!(b > a)) return 0;
+    const h = (b - a) / m; let t = fn(a) + fn(b);
+    for (let i = 1; i < m; i++) t += fn(a + i * h) * (i % 2 ? 4 : 2);
+    return (t * h) / 3;
+  };
+  const Z = simpson(-4, 4, 400, g);   // the same truncated Gaussian the old grid normalised to
+  return depths.map((z) => {
+    const r0 = R - z;                 // residual range at this depth with no straggling
+    if (!(sigma > 0)) return f(r0);
+    const hi = r0 + 4 * sigma, lo = r0 - 4 * sigma;
+    if (!(hi > 0)) return 0;
+    const kern = (r: number) => g((r - r0) / sigma) * f(r);
+    const num = lo > 0
+      ? simpson(lo, hi, 400, kern)
+      : simpson(0, Math.pow(hi, 0.25), 400, (sv) => kern(sv * sv * sv * sv) * 4 * sv * sv * sv);
+    return num / (sigma * Z);
+  });
 }

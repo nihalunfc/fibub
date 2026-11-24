@@ -27,4 +27,25 @@ export default async (check) => {
   { const s = simulate({ betas, lambdas, Lambda: 1e-5 }, { kind: 'step', rho: 0.5 * beta }, 0.03, { out: 10 }); check(`kinetics: simulation shows the prompt jump (n(0.03 s) = ${s.n[10].toFixed(4)})`, Math.abs(s.n[10] - 2) < 0.03); }
   check('kinetics: reactivity units', Math.abs(toRho(1, 'dollar', beta) - 0.0065) < 1e-15 && Math.abs(toRho(50, 'cent', beta) - 0.00325) < 1e-15 && Math.abs(toRho(100, 'pcm', beta) - 0.001) < 1e-15 && toRho(0.002, 'dk', beta) === 0.002);
   check('kinetics: ramp and scram reactivity', Math.abs(rhoAt({ kind: 'ramp', rate: 0.001, max: 0.003 }, 2) - 0.002) < 1e-15 && Math.abs(rhoAt({ kind: 'ramp', rate: 0.001, max: 0.003 }, 9) - 0.003) < 1e-15 && Math.abs(rhoAt({ kind: 'step', rho: 0.001, scramAt: 1, scramRho: -0.03 }, 1) + 0.029) < 1e-15);
+  msre(check);
+
 };
+// Added with /blog/discoveries/msre-flowing-fuel-delayed-neutron-loss/: the MSRE six-group data printed by
+// Pfahl et al. (2025), with the fuel standing still and with each group cut by its plug-flow core share.
+function msre(check) {
+  const pcm = (a) => a.map((b) => b * 1e-5);
+  const L = 4e-4, rho = 50e-5;
+  const rest = { betas: pcm([22.84, 118.08, 112.78, 252.81, 103.84, 43.47]), lambdas: [0.013336, 0.032739, 0.12078, 0.30278, 0.84949, 2.853], Lambda: L };
+  const u233 = { betas: pcm([25.45, 68.22, 53.12, 104.95, 34.21, 12.28]), lambdas: [0.012911, 0.034738, 0.11928, 0.28617, 0.7877, 2.4417], Lambda: L };
+  check('MSRE: the paper\u2019s group fractions total 653.82 and 298.23 pcm', Math.abs(betaTotal(rest) * 1e5 - 653.82) < 5e-10 && Math.abs(betaTotal(u233) * 1e5 - 298.23) < 5e-10);
+  const flow = { betas: [0.00008551, 0.0004501, 0.0005249, 0.001698, 0.0009084, 0.0004185], lambdas: rest.lambdas, Lambda: L };
+  check('MSRE: flowing U-235 fraction 408.5 pcm', Math.abs(betaTotal(flow) * 1e5 - 408.5) < 0.1);
+  const per = (k) => 1 / inhourRoots(k, rho)[0];
+  check(`MSRE: 50 pcm gives a 114.9 s period at rest and 41.1 s flowing (${per(rest).toFixed(1)}, ${per(flow).toFixed(1)})`, Math.abs(per(rest) - 114.89) < 0.05 && Math.abs(per(flow) - 41.08) < 0.05);
+  const n40 = (k) => simulate(k, { kind: 'step', rho }, 40, { out: 40 }).n[40];
+  check('MSRE: power after 40 s is 1.72x at rest and 3.66x flowing', Math.abs(n40(rest) - 1.724833) < 1e-4 && Math.abs(n40(flow) - 3.658712) < 1e-4);
+  // Same total, different shape: cutting every group evenly to 431 pcm gives a much longer period.
+  const even = { betas: rest.betas.map((b) => (b * 431) / 653.82), lambdas: rest.lambdas, Lambda: L };
+  const shaped = { betas: flow.betas.map((b) => (b * 431) / (betaTotal(flow) * 1e5)), lambdas: rest.lambdas, Lambda: L };
+  check(`MSRE: at the same 431 pcm, an even cut gives 67.5 s but the real shape gives 44.2 s`, Math.abs(per(even) - 67.5) < 0.1 && Math.abs(per(shaped) - 44.2) < 0.1);
+}

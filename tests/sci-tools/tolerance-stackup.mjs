@@ -19,6 +19,14 @@ export default async (check) => {
   check('stack: Monte Carlo fallout matches NumPy (0.0088 %, 0.932 %)', Math.abs(m.above - 0.0093175) < 0.0012 && m.below < 0.0004);
   check('stack: same seed, same result; other seed differs', T.monteCarlo(d, 1000, 7)[999] === T.monteCarlo(d, 1000, 7)[999] && T.monteCarlo(d, 1000, 8)[999] !== T.monteCarlo(d, 1000, 7)[999]);
   { const u = T.monteCarlo([{ name: 'u', nominal: 0, plus: 1, minus: 1, dir: 1, dist: 'uniform' }], 50000, 3); check('stack: uniform parts stay inside their band', u.every((v) => v >= -1 && v <= 1)); }
+  // New with the blog article on the aircraft ring assembly (doi:10.3390/machines13080736): the pass rate that a
+  // published Cpk implies, in units of sigma, for a centred two-sided characteristic.
+  {
+    const pass = (cpk) => 1 - T.fallout(0, 1, -3 * cpk, 3 * cpk).total;
+    check('stack: Cpk 0.31 implies 64.763 % inside the limits', Math.abs(pass(0.31) * 100 - 64.763) < 0.001);
+    check('stack: Cpk 1.06 implies 99.8527 % inside, 1472.8 ppm outside', Math.abs(pass(1.06) * 100 - 99.8527) < 0.0001 && Math.abs((1 - pass(1.06)) * 1e6 - 1472.8) < 0.1);
+    check('stack: Cpk 2.19 leaves 0.05 failures per billion', Math.abs((1 - pass(2.19)) * 1e9 - 0.05) < 0.01);
+  }
   let threw = 0; try { T.parseDims([['a', '10', 'x']]); } catch { threw++; } try { T.parseDims([['a', '10', '0.1', '0.1', '?']]); } catch { threw++; } try { T.parseDims([]); } catch { threw++; }
   check('stack: bad rows rejected', threw === 3);
 };

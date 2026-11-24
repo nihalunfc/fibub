@@ -22,6 +22,19 @@ export default async (check) => {
   const v3 = ventilation(g, { I: 50, tau: 0.7, evap: 0.5, dT: 6, tOut: 10, U: 4, countCover: true });
   check('greenhouse: weak sun needs no ventilation', !v3.needed && v3.flow === 0);
   { const lo = heating(g, { U: 4, tIn: 18, tOut: -10, ach: 1, margin: 0, p: pressureAtAltitude(1500) }); check('greenhouse: thinner air at altitude lowers the air-leak loss only', lo.qAir < h.qAir && lo.qCover === h.qCover); }
+  // Blog article greenhouse-cover-thermal-curtain-heat-loss-savings: the reference house used to rebuild the savings
+  // reported by Boyaci et al. (2025), Energies 18(3): 724 (CC BY 4.0).
+  {
+    const gr = geometry({ length: 60, width: 27.5, eave: 3, ridge: 6.44 });
+    const h1 = heating(gr, { U: 6.5, tIn: 15, tOut: -10, ach: 1, margin: 0 });
+    const h2 = heating(gr, { U: 4.25, tIn: 15, tOut: -10, ach: 1, margin: 0 });
+    const s1 = season(h1, 1362, { energyMJ: 3.6, efficiency: 1 });
+    const close = (a, b, t) => Math.abs(a - b) <= t;
+    check('greenhouse: 60 x 27.5 m reference house geometry', close(gr.floor, 1650, 1e-9) && close(gr.cover, 2320.4539, 1e-3) && close(gr.slope, 14.0, 0.05));
+    check('greenhouse: reference house loses 450.1 kW, 273 W per m2 of floor', close(h1.q / 1000, 450.1, 0.05) && close(h1.perFloor, 272.8, 0.1) && close((100 * h1.qCover) / h1.q, 83.8, 0.1));
+    check('greenhouse: 1362 degree-days give 356.6 kWh per m2 of floor', close(s1.kWh, 588457, 1) && close(s1.kWh / gr.floor, 356.6, 0.05));
+    check('greenhouse: U 4.25 cuts the loss by 29 %', close(100 * (1 - h2.q / h1.q), 29.0, 0.05));
+  }
   const err = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
   check('greenhouse: bad inputs refused', err(() => geometry({ length: 30, width: 9, eave: 3, ridge: 2 })).includes('ridge') && err(() => heating(g, { U: 4, tIn: 5, tOut: 10, ach: 1, margin: 0 })).includes('inside temperature') && err(() => ventilation(g, { I: 800, tau: 0.7, evap: 1, dT: 4, tOut: 28, U: 4, countCover: true })).includes('below 100'));
 };

@@ -23,4 +23,10 @@ export default async (check) => {
   check('std: incidence rate with exact Poisson limits', near(c.est, 3.250167288022178) && near(c.ci[0], 1.8933422176861252, 1e-7) && near(c.ci[1], 5.203832676781675, 1e-7));
   check('std: risk (Wilson) and prevalence (exact)', near(R.crude(45, 300, 'risk', 100).ci[0], 11.403246871185315, 1e-7) && near(R.crude(45, 300, 'prevalence', 100, 0.95, 'exact').ci[1], 19.55164406840253, 1e-7));
   check('std: Poisson tails', near(R.poissonTails(3, 2.5).le, 0.7575761331330659, 1e-9) && near(R.poissonTails(3, 2.5).ge, 0.4561868841166703, 1e-9));
+  // The three published ratios of Manz et al. (2024), BMC Public Health 24: 3560 (CC BY 4.0), rebuilt from the
+  // observed and expected counts: see src/blog/discoveries/german-landfill-workers-cancer-sir-smr-exact-poisson.md.
+  const oe = (O, E) => R.indirect([{ name: 'all ages', pop: 1e5, rate: E }], O, 1e5, 0.95);
+  const r4 = (v) => Math.round(v * 1e4) / 1e4;
+  const landfill = [[31, 44.8, 0.692, 0.4702, 0.9822], [31, 60.3, 0.5141, 0.3493, 0.7297], [30, 56.2, 0.5338, 0.3602, 0.762]];
+  check('std: landfill cohort SIR 0.692 and SMRs 0.514, 0.534 with exact limits', landfill.every(([O, E, s, l, u]) => { const x = oe(O, E); return r4(x.smr) === s && r4(x.ci[0]) === l && r4(x.ci[1]) === u; }));
 };

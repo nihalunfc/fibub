@@ -13,6 +13,10 @@ export default async (check) => {
     const h = response({ h2: 0.4, p: 0.1, sigmaP: 8, c: 0.5 });
     check('breeders: one parent selected halves the response', near(h.R, r.R / 2, 1e-12) && h.perYear === null && h.newMean === null);
     check('breeders: R = h2 S from S', response({ h2: 0.25, S: 12 }).R === 3);
+    // Blog: /blog/discoveries/soybean-antinutrient-genetic-advance/ (Palange et al. 2025, Discover Agriculture).
+    const ph = response({ h2: 0.68, p: 0.05, sigmaP: 1188.9, mean: 585.375154196613 });
+    check('breeders: soybean phytate genetic advance at 5 % kept', near(ph.S, 2452.3592568455756, 1e-9) && near(ph.R, 1667.6042946549915, 1e-9) && near(ph.pct, 284.87787407780627, 1e-9));
+    check('breeders: soybean trypsin inhibitor genetic advance', near(response({ h2: 0.84, p: 0.05, sigmaP: 291.05 }).R, 504.2961526050298, 1e-9));
     let e = ''; try { response({ h2: 1.2, S: 3 }); } catch (x) { e = x.message; } let e2 = ''; try { intensity(1); } catch (x) { e2 = x.message; }
     check('breeders: bad h2 and p refused', e.includes('between 0 and 1') && e2.includes('between 0 and 100'));
   }

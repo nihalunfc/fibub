@@ -30,5 +30,19 @@ export default async (check) => {
   { let e = ''; try { segment(x, t, 3, { breaks: [10] }); } catch (er) { e = er.message; } check('refraction: wrong number of breaks refused', e.includes('Give 2 break offsets')); }
   { let e = ''; try { segment([1, 2, 3], [1, 2, 3], 2); } catch (er) { e = er.message; } check('refraction: too few picks refused', e.includes('at least 4 picks')); }
   check('refraction: critical distance and hidden (slower) layer', near(forwardTimes([500, 1800], [4], [0]).heads[1].xcrit, 2 * 4 * Math.tan(Math.asin(500 / 1800)), 1e-12) && !forwardTimes([1000, 800, 3000], [3, 3], [50]).heads[1].ok);
+  // Blog article ahad-rafidah-seismic-refraction-spread-length-crossover: 530/1890/2630 m/s with 4 m of alluvium over
+  // basement at 30 m. On the paper's 115 m spread (24 geophones at 5 m) the third branch is never a first arrival.
+  { const v = [530, 1890, 2630], h = [4, 26], xs = Array.from({ length: 24 }, (_, i) => i * 5);
+    const F = forwardTimes(v, h, xs), hd = F.heads;
+    const xcs = [1, 2].map((n) => (hd[n].ti - hd[n - 1].ti) / (1 / v[n - 1] - 1 / v[n]));
+    check('refraction: Ahad Rafidah article, intercepts 14.49 and 33.92 ms and critical distance 55.4 m',
+      near(hd[1].ti * 1000, 14.49, 0.005) && near(hd[2].ti * 1000, 33.92, 0.005) && near(hd[2].xcrit, 55.4, 0.05));
+    check('refraction: Ahad Rafidah article, crossovers 10.7 m and 130.5 m', near(xcs[0], 10.7, 0.05) && near(xcs[1], 130.5, 0.05));
+    check('refraction: Ahad Rafidah article, only two branches arrive first inside the 115 m spread', new Set(F.layer).size === 2 && !F.layer.includes(2));
+    const hx = crossoverDepths(v, xcs.map((x) => +x.toFixed(1)));
+    check('refraction: Ahad Rafidah article, crossover depths give back 4.01 m and 26.00 m', near(hx[0], 4.01, 0.01) && near(hx[1], 26.0, 0.02));
+    const { lines } = segment(xs, F.first.map((t) => +(t * 1000).toFixed(2) / 1000), 2);
+    check('refraction: Ahad Rafidah article, two-layer fit of the rounded picks gives 530 and 1890 m/s and 4.00 m',
+      near(lines[0].v, 529.9, 0.5) && near(lines[1].v, 1890, 1) && near(interceptDepths(lines.map((l) => l.v), lines.map((l) => l.ti))[0], 4.0, 0.01)); }
   { const p = sortPicks([30, -10, 20, NaN], [3, 1, 2, 5]); check('refraction: picks sorted by offset, ms to s, gaps dropped', p.x.join() === '10,20,30' && p.t.join() === '0.001,0.002,0.003'); }
 };

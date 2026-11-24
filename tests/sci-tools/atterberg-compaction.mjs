@@ -22,4 +22,14 @@ export default async (check) => {
   { const c = compaction([10, 12, 14], [1.6, 1.7, 1.8]); check('atterberg-compaction: rising data has no interior peak', !c.interior && close(c.wOpt, 14)); }
   let threw = false; try { llFlow([25, 25], [40, 41]); } catch { threw = true; }
   check('atterberg-compaction: same blow counts refused', threw);
+  // From /blog/discoveries/lime-wheat-husk-ash-clay-subgrade-compaction-checks/: the lateritic clay of Adekanle et al.
+  // (2026), doi:10.3389/fbuil.2026.1768387. LL 50.1, PL 24.76, clay 25.52 %; peak 1.739 Mg/m3 at 17.8 % water.
+  { const ix = indices(50.1, 24.76, undefined, 25.52);
+    const gsNeeded = 1.739 / (1 - 0.178 * 1.739);
+    check('atterberg-compaction: Adekanle clay, PI 25.34 and activity 0.993; the peak needs Gs 2.519, and gives S 172.2 % at 2.12 and 90.0 % at 2.65',
+      Math.abs(ix.PI - 25.34) < 1e-9 && Math.abs(ix.A - 0.993) < 5e-4
+      && Math.abs(saturation(17.8, 1.739, 2.12) * 100 - 172.2) < 0.05
+      && Math.abs(saturation(17.8, 1.739, 2.65) * 100 - 90.0) < 0.05
+      && Math.abs(airVoids(17.8, 2.12) - 1.5392) < 5e-5
+      && Math.abs(gsNeeded - 2.519) < 5e-4 && Math.abs(saturation(17.8, 1.739, gsNeeded) - 1) < 1e-9); }
 };

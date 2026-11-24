@@ -37,4 +37,10 @@ export default async (check) => {
   check('smith: quarter-wave transformer 100 Ω on 50 Ω line gives 25 Ω', near(lineZin([100, 0], 50, 0.25), [25, 0], 1e-9));
   check('smith: matched load, Γ = 0, infinite return loss', mismatch([50, 0], 50).mag === 0 && mismatch([50, 0], 50).returnLoss === Infinity);
   check('smith: chart circles lie inside the unit circle and r-circles pass through Γ = 1', rCircle(1).every((p) => abs(p) <= 1 + 1e-12) && xArc(-0.5).every((p) => abs(p) <= 1 + 1e-12) && near(rCircle(2)[0], [1, 0], 1e-12) && near(gamma([0, 1], 1), [0, 1], 1e-12));
+  // New with the RFID patch array article (El Ansari et al. 2022, E3S 351: 01056): a resistive load whose S11 is -24.57 dB and -13.14 dB, and a quarter-wave transformer.
+  for (const [s11, vswr, ml] of [[-24.57, 1.1255975109705643, 0.015189503038512913], [-13.14, 1.5650649445884683, 0.21604375630031522]]) {
+    const g = 10 ** (s11 / 20), m = mismatch([50 * (1 + g) / (1 - g), 0], 50);
+    check(`smith: resistive load with S11 ${s11} dB gives VSWR ${vswr.toFixed(4)} and mismatch loss ${ml.toFixed(4)} dB`, close(m.vswr, vswr, 1e-9) && close(m.mismatchLoss, ml, 1e-9) && close(m.returnLoss, -s11, 1e-9));
+  }
+  check('smith: 339.34 ohm through a quarter-wave 130.26 ohm line is 50 ohm', near(lineZin([339.3390572977127, 0], Math.sqrt(50 * 339.3390572977127), 0.25), [50, 0], 1e-9));
 };

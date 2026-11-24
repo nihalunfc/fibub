@@ -30,5 +30,13 @@ export default async (check) => {
   check('magnetic: zero susceptibility and no remanence gives no field', profile({ kind: 'sphere', s0: 0, z: 50, R: 10 }, f, { chi: 0 }, [0, 10]).every((v) => v === 0));
   check('magnetic: body checks', bodyProblem({ kind: 'sphere', s0: 0, z: 10, R: 20 }).includes('deeper') && bodyProblem({ kind: 'prism', s0: 0, width: 1, length: 1, z1: 5, z2: 4 }).includes('bottom') && bodyProblem({ kind: 'dyke', s0: 0, z: 5, thick: 1, dip: 0, extent: 10 }).includes('Dip') && bodyProblem({ kind: 'cylinder', s0: 0, z: 50, R: 5 }) === '');
   { const r = misfit([1, 2, 3], [0, 1, 2]); check('magnetic: RMS misfit and level shift', r.rms === 1 && r.shift === 1 && r.rmsShifted === 0); }
+  // Blog article jos-plateau-younger-granite-dyke-depth-magnetic-anomaly: near the magnetic dip equator (I = 0) a
+  // vertical dyke and a plug read as lows. 301 stations from -800 to 800 m, sensor 120 m up, F 33500 nT, chi 0.02 SI.
+  { const eq = { F: 33500, inc: 0, dec: 0, az: 0 }, S = Array.from({ length: 301 }, (_, i) => -800 + (1600 * i) / 300);
+    const lo = (b) => Math.min(...profile(b, eq, { chi: 0.02 }, S, 120)), hi = (b) => Math.max(...profile(b, eq, { chi: 0.02 }, S, 120));
+    const d30 = { kind: 'dyke', s0: 0, z: 150, thick: 30, dip: 90, extent: 2000 }, d63 = { ...d30, thick: 63 };
+    const pl = { kind: 'prism', s0: 0, t0: 0, width: 400, length: 400, z1: 150, z2: 2000 };
+    check('magnetic: Jos Plateau article, dyke and plug lows at the dip equator', near(lo(d30), -10.44, 0.01) && near(lo(d63), -21.92, 0.01) && near(lo(pl), -37.68, 0.01) && near(hi(pl), 5.74, 0.01));
+    check('magnetic: Jos Plateau article, the anomaly is linear in dyke thickness', near(lo(d63) / lo(d30), 63 / 30, 1e-9)); }
   check('magnetic: prism field finite on a face plane and at a corner line', bodyField({ kind: 'prism', s0: 0, width: 10, length: 10, z1: 5, z2: 15 }, [1, 0, 1], [5, 0, 0]).every(Number.isFinite) && bodyField({ kind: 'prism', s0: 0, width: 10, length: 10, z1: 5, z2: 15 }, [1, 1, 1], [5, 5, 0]).every(Number.isFinite));
 };

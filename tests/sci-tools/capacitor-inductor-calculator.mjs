@@ -24,4 +24,14 @@ export default async (check) => {
   check('capind: rectangular toroid matches SciPy flux integral (55.45 µH)', rel(K.toroidRect(200, 0.02, 0.04, 0.01, 1), 5.545177443747417e-05, 1e-9));
   check('capind: thin round toroid approaches μ0 N² A / (2πR)', rel(K.toroidRound(100, 1, 0.001, 1), (K.MU0 * 1e4 * Math.PI * 1e-6) / (2 * Math.PI), 1e-6));
   check('capind: internal inductance μ0/8π = 50 nH/m', Math.abs(K.internalL - 5e-8) < 1e-15);
+  // New with the blog article cu-pdms-capacitive-pressure-sensor-permittivity (Sensors 25, 637, 2025): the flexible
+  // sensor's stack, four 5 x 5 mm pads in parallel (1 cm2) over a 1 mm dielectric with 0.2 mm of PDMS skin.
+  {
+    const A = 1e-4, pf = (c) => c * 1e12;
+    check('capind: flexible sensor, 1 cm² over 1 mm of PDMS (εr 3.14) = 2.78021 pF as measured', rel(pf(K.plates(A, [{ d: 1e-3, er: 3.14 }])), 2.7802149751032, 1e-9));
+    check('capind: the same with 0.2 mm of skin in series = 2.31685 pF', rel(pf(K.plates(A, [{ d: 1e-3, er: 3.14 }, { d: 0.2e-3, er: 3.14 }])), 2.3168458125860, 1e-9));
+    check('capind: the Cu/CB composite layer (εr 5.56) = 4.92293 pF bare, 3.63546 pF encapsulated', rel(pf(K.plates(A, [{ d: 1e-3, er: 5.56 }])), 4.9229284272528, 1e-9) && rel(pf(K.plates(A, [{ d: 1e-3, er: 5.56 }, { d: 0.2e-3, er: 3.14 }])), 3.63546454881792, 1e-9));
+    const E = K.plateFields(A, [{ d: 1e-3, er: 5.56 }, { d: 0.2e-3, er: 3.14 }], 1);
+    check('capind: the skin carries 5.56/3.14 times the field of the composite', rel(E[1] / E[0], 5.56 / 3.14, 1e-12) && rel(E[0] * 1e-3 + E[1] * 0.2e-3, 1, 1e-12));
+  }
 };

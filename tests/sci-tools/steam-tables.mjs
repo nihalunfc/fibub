@@ -32,6 +32,11 @@ export default async (check) => {
     const r = W.rankine({ pBoil: c[0], T3: c[1], pCond: c[2], etaT: c[3], etaP: c[4], reheat: c[5] ? { p: c[5][0], T: c[5][1] } : undefined }), [eta, wT, wP, q, x] = CYC[i];
     check(`if97: Rankine cycle ${i + 1} (${c[5] ? 'reheat' : 'simple'}) matches iapws: efficiency ${(eta * 100).toFixed(2)} %`, near(r.eta, eta, 1e-7) && near(r.wT, wT, 1e-7) && near(r.wP, wP, 1e-6) && near(r.qIn, q, 1e-7) && Math.abs(r.xExit - x) < 1e-7);
   });
+  // New with the blog article on steel-slag waste heat (doi:10.3389/fenrg.2026.1965673): the paper's cycle,
+  // 0.2 MPa and 556.8 C into a 72 % turbine, condenser at 0.004 MPa, pump 75 %.
+  { const r = W.rankine({ pBoil: 0.2, T3: 556.8 + 273.15, pCond: 0.004, etaT: 0.72, etaP: 0.75 });
+    check('if97: steel-slag cycle gives 716.08 kJ/kg of turbine work and 20.52 % efficiency', Math.abs(r.wT - 716.08) < 0.01 && Math.abs(r.qIn - 3488.5) < 0.05 && Math.abs(r.eta * 100 - 20.52) < 0.005 && r.xExit === null);
+    check('if97: its turbine exhaust is still 178 K superheated at 207.31 C', Math.abs(r.pts[3].st.T - 273.15 - 207.31) < 0.01 && Math.abs(r.pts[3].st.T - W.tsat(0.004) - 178.4) < 0.05); }
   { const r = W.rankine({ pBoil: 10, T3: 823.15, pCond: 0.01, etaT: 1, etaP: 1 });
     check('if97: ideal cycle stays below the Carnot limit and closes its energy balance', r.eta < r.carnot && near(r.qIn - r.qOut, r.wNet, 1e-9)); }
   { const sat = W.satP(0.1), m = W.mix(sat, 0.5);

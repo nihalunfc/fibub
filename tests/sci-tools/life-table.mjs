@@ -25,6 +25,12 @@ export default async (check) => {
   // Constant hazard: e0 = 1/m exactly whatever the intervals, when nax follows the exponential.
   check('lifetable: open group alone', rel(L.lifeTable([0, 5], [0.02, 0.02], { method: 'given', sex: 'female', ax: [(1 / 0.02) - 5 * Math.exp(-0.1) / (1 - Math.exp(-0.1)), 0] })[0].ex, 50));
   check('lifetable: Coale-Demeny high m0 branch', L.coaleDemeny(0.2, 'male').a0 === 0.33 && L.coaleDemeny(0.2, 'female').a1_4 === 1.361 && L.andreevKingkade(0.1, 'female') === 0.31411);
+  // New with the England infant-mortality article (Norman et al. 2025): made-up smooth rates with e0 = 81.04; one extra infant death per 1,000 births costs about 29.7 days.
+  const ag = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85];
+  const mE = [0.0039, 0.00015, 0.000152, 0.000183, 0.000234, 0.000315, 0.000446, 0.000657, 0.000995, 0.001539, 0.002415, 0.003822, 0.006085, 0.009724, 0.015576, 0.024985, 0.040116, 0.064446, 0.103569];
+  const tE = L.lifeTable(ag, mE, { method: 'cd', sex: 'female' }), tF = L.lifeTable(ag, [0.004908, ...mE.slice(1)], { method: 'cd', sex: 'female' });
+  check('lifetable: England-like table has e0 81.04 and e1 80.36', Math.abs(tE[0].ex - 81.04) < 0.005 && Math.abs(tE[1].ex - 80.36) < 0.005);
+  check('lifetable: m0 0.004908 (q0 up by 0.001) lowers e0 by 29.7 days', Math.abs((tE[0].qx - 0.00389) * 1e4) < 0.5 && Math.abs((tF[0].qx - tE[0].qx) - 0.001) < 2e-6 && Math.abs((tE[0].ex - tF[0].ex) * 365.25 - 29.7) < 0.2);
   let bad = 0;
   for (const f of [() => L.lifeTable([0, 0], [0.1, 0.1], { method: 'mid', sex: 'male' }), () => L.lifeTable([0, 1], [0.1, 0], { method: 'mid', sex: 'male' }), () => L.lifeTable([0, 1, 5], [0.1, -1, 0.2], { method: 'mid', sex: 'male' })]) { try { f(); } catch { bad++; } }
   check('lifetable: bad input refused', bad === 3);

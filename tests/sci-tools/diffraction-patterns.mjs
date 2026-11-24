@@ -36,6 +36,15 @@ export default async (check) => {
   check('diff: double-slit fringe minimum at λz/(2d)', fraunhofer(dbl, 532e-9, 1, (532e-9 * 1) / (2 * 0.5e-3)) < 1e-6 * fraunhofer(dbl, 532e-9, 1, 0));
   check('diff: Fresnel number of 2 mm hole at 1 m, 633 nm = 1.58', near(fresnelNumber({ kind: 'circle', a: 2e-3, d: 0, N: 1 }, 633e-9, 1), 1.5797788309636651, 1e-12));
   check('diff: irradiance dispatches both regimes', irradiance(slit, 600e-9, 1, 0, 'far') === fraunhofer(slit, 600e-9, 1, 0) && irradiance(circ, 633e-9, 2, -1e-3, 'near') === fresnelCircle(0.2e-3, 633e-9, 2, 1e-3));
+  // Laser-induced surface ripples read with a 532 nm probe (Götte et al. 2025, Sensors 25(16): 5031): the order
+  // angles, the floor at Λ = λ, and the even orders a 50:50 duty cycle kills.
+  { const lam = 532e-9, xAt = (s) => Math.tan(Math.asin(s)), rel = (ap, s) => fraunhofer(ap, lam, 1, xAt(s)) / fraunhofer(ap, lam, 1, 0);
+    const g = (perNm, duty) => ({ kind: 'grating', a: duty * perNm * 1e-9, d: perNm * 1e-9, N: 18 });
+    const sin1 = lam / 1.13e-6, sin2 = 2 * sin1;
+    check('diff: 1.13 µm ripples at 532 nm diffract at 28.09° and 70.32°', near((Math.asin(sin1) * 180) / Math.PI, 28.0860, 1e-4) && near((Math.asin(sin2) * 180) / Math.PI, 70.3208, 1e-4) && (3 * lam) / 1.13e-6 > 1);
+    check('diff: 415 nm ripples have no order at 532 nm, and 532 nm ripples only graze', lam / 415e-9 > 1 && near(lam / 532e-9, 1, 1e-12));
+    check('diff: order peaks of a 40 % duty ripple (0.573 and 0.055 of the zero order)', near(rel(g(1130, 0.4), sin1), 0.5728, 5e-4) && near(rel(g(1130, 0.4), sin2), 0.0547, 5e-4));
+    check('diff: a 50:50 duty cycle wipes out the second order', rel(g(1130, 0.5), sin2) < 1e-20); }
   // Wide slit close up: the geometric shadow (edge irradiance 1/4 at each edge for an isolated edge).
   { const w = { kind: 'slit', a: 10e-3, d: 0, N: 1 }; check('diff: wide slit edge irradiance 0.25, centre near 1', near(fresnelSlits(w, 500e-9, 0.1, 5e-3), 0.25, 0.01) && near(fresnelSlits(w, 500e-9, 0.1, 0), 1, 0.05)); }
 };

@@ -26,6 +26,14 @@ export default async (check) => {
   check('gauss: divergence 0.403 mrad', near(divergence(0.5, 633) * 1e3, 0.40298, 1e-4));
   check('gauss: beam conserves w0·θ (beam parameter product)', near(segs[3].w0 * segs[3].theta, 0.5 * divergence(0.5, 633), 1e-9));
   check('gauss: beamAt picks the right segment', beamAt(segs, 500) === segs[2]);
+  // The bow-tie doubling cavity of Xu et al. (2025), Photonics 12(8): 830: two 150 mm mirrors 210 mm apart on a
+  // 490 mm round trip. The self-reproducing beam at the symmetric plane has zR = |B|/sqrt(1 - ((A+D)/2)^2).
+  { const ring = parseElements('mirror 105 150 M3\nmirror 385 150 M4'), Mr = systemMatrix(ring, 490);
+    const mid = (Mr[0] + Mr[3]) / 2, zR = Math.abs(Mr[1]) / Math.sqrt(1 - mid * mid), w0 = Math.sqrt((zR * 840e-6) / Math.PI);
+    check('gauss: ring round-trip ABCD A = D = -46/150, B = -39.2 mm', near(Mr[0], -46 / 150, 1e-12) && near(Mr[3], -46 / 150, 1e-12) && near(Mr[1], -39.2, 1e-12) && Math.abs(mid) < 1);
+    check('gauss: ring eigenmode zR 41.186 mm, waist 104.94 um at 840 nm', near(zR, 41.1864, 1e-4) && near(w0 * 1000, 104.936, 1e-3) && near(zR, rayleigh(w0, 840), 1e-9));
+    const closed = propagate(w0, 0, 840, 1, ring, 490).at(-1);
+    check('gauss: the ring eigenmode closes on itself after one trip', near(closed.w0, w0, 1e-9) && near(closed.zw, 490, 1e-6)); }
   let msg = ''; try { parseElements('lens 200'); } catch (e) { msg = e.message; }
   check('gauss: bad line message', msg.includes('Line 1'));
   msg = ''; try { parseElements('prism 1 2'); } catch (e) { msg = e.message; }

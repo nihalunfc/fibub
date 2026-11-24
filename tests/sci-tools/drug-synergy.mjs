@@ -30,6 +30,21 @@ export default async (check) => {
   // Parsing and bad input.
   const m = parseMatrix([['A\\B', '10', '0', '1'], ['1', '50', '20', '30'], ['0', '40', '0', '10'], ['2', '60', '35', '45']], num);
   check('synergy: matrix parsed and sorted', m.a.join() === '0,1,2' && m.b.join() === '0,1,10' && m.e[0].join() === '0,10,40' && m.e[1].join() === '20,30,50');
+  // Blog article abt199-vorinostat-additivity-benchmark: two simulated matrices built from the HT-29 IC50 values of
+  // Abu Alsamen et al. (2025), PLOS ONE 20: e0334427 (CC BY) - vorinostat 1.32 uM, ABT-199 4.04 uM, Hill slope 1,
+  // top 100 % (the article's assumptions). The first is exactly Loewe-additive; the second doubles each drug's
+  // potency wherever both are present, so every well must give CI 0.5.
+  const Hv = (ec50) => ({ ec50, h: 1, emax: 100, r2: 1, n: 5, converged: true });
+  const hv = Hv(1.32), ha = Hv(4.04);
+  const Av = [0, 0.33, 0.66, 1.32, 2.64, 5.28], Bv = [0, 1.01, 2.02, 4.04, 8.08, 16.16];
+  const mk = (boost) => ({ a: Av, b: Bv, e: Av.map((a) => Bv.map((b) => { const k = a > 0 && b > 0 ? boost : 1; return +loeweExpected(a * k, b * k, hv, ha).toFixed(2); })) });
+  const dAdd = 2 / (1 / hillInv(50, hv) + 1 / hillInv(50, ha));
+  check('synergy: additive equal-molar total dose 1.98985 uM, CI exactly 1', near(dAdd, 1.9898507462686568, 1e-9) && near(dAdd / 2 / 1.32 + dAdd / 2 / 4.04, 1, 1e-12));
+  const shamV = analyse(mk(1), 100);
+  check('synergy: additive matrix gives CI 1.0000822 in all 25 wells, Loewe flat', near(shamV.summary.ci.geoMean, 1.0000822021060503, 1e-9) && shamV.summary.ci.n === 25 && shamV.summary.ci.add === 25 && Math.abs(shamV.summary.loewe.mean) < 0.002);
+  check('synergy: the same additive matrix is -5.7732 under Bliss and +6.9596 under HSA', near(shamV.summary.bliss.mean, -5.7732, 1e-4) && near(shamV.summary.hsa.mean, 6.9596, 1e-4) && near(shamV.hillA.ec50, 1.32, 1e-9) && near(shamV.hillB.ec50, 4.04, 1e-9));
+  const synV = analyse(mk(2), 100);
+  check('synergy: two-fold matrix gives CI 0.5000565 and 11.5578 points over Loewe', near(synV.summary.ci.geoMean, 0.5000564911459822, 1e-9) && synV.summary.ci.syn === 25 && near(synV.summary.loewe.mean, 11.557840447502803, 1e-6) && near(synV.summary.loewe.max, 17.143353207092332, 1e-6) && synV.summary.loewe.at.join() === '0.33,2.02');
   const throws = (fn) => { try { fn(); return false; } catch { return true; } };
   check('synergy: bad matrices rejected', throws(() => analyse({ a: [1, 2, 3], b: [0, 1, 2], e: [[1, 2, 3], [1, 2, 3], [1, 2, 3]] })) && throws(() => parseMatrix([['x', '0', '1', '2'], ['0', '0', '5', '9'], ['1', '1000', '5', '9'], ['2', '4', '5', '9']], num)) && throws(() => fitHill([0, 1, 2], [0, 10, 20], 100)));
 };

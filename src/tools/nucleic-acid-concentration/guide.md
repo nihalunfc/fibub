@@ -53,6 +53,7 @@ Prep 3 has a 260/280 of 1.62, below the usual 1.7 for DNA, which hints at protei
 
 - Below about 0.02 absorbance units readings are unreliable, and the tool says so.
 - A260 counts every nucleic acid, so RNA in a DNA prep (or free nucleotides) inflates the result. A dye-based assay is more specific.
+- **A clean 260/280 does not rule out RNA.** RNA on its own reads about 2.0, so a DNA prep carrying a lot of RNA lands near 2.0 and draws no flag, while the concentration can still be several times too high. If the number matters, measure the same sample with a dye-based assay and compare.
 - The purity ranges are rules of thumb; ratios also shift with the pH and salt of the blank.
 
 ## FAQ

@@ -41,6 +41,16 @@ export default async (check) => {
   check('abg: pH that disagrees is flagged', I({ ph: 7.10, pco2: 17, hco3: 6, na: 135, cl: 98, alb: 4 }).steps[0].tone === 'warn');
   const bad = (f) => { try { f(); return false; } catch { return true; } };
   check('abg: bad input refused', bad(() => I({ ph: 9, pco2: 40, hco3: 24, na: 140, cl: 104, alb: 4 })) && bad(() => I({ ph: 7.4, pco2: 40, hco3: 24, na: 140, cl: 104, alb: 4, osm: 300 })));
+  // Blog article ethylene-glycol-osmolar-gap-high-anion-gap-acidosis-check: the reconstructed panel of
+  // Mavromatidis and Kalogiannidou (2025), Ukr. J. Nephrol. Dial. 3(87): 2025.02 (CC BY-SA 4.0). pH 7.09,
+  // HCO3 3.2, anion gap 22.5 and osmolar gap 83 are the paper's; the rest is the article's reconstruction.
+  const EG = { ph: 7.09, pco2: 10.9, hco3: 3.2, na: 140, cl: 114.3, alb: 4, glucose: 10, urea: 7, osm: 380 };
+  r = I(EG);
+  check('abg: ethylene glycol case, pCO2 10.9 derived from pH 7.09 and HCO3 3.2', close(3.2 / (0.03 * 10 ** (7.09 - 6.1)), 10.9151, 1e-4) && Math.abs(r.phCalc - 7.09) < 0.005);
+  check('abg: ethylene glycol case, Winter band 10.8 to 14.8 and compensation appropriate', close(r.expected.lo, 10.8) && close(r.expected.hi, 14.8) && r.comp === 'ok');
+  check('abg: ethylene glycol case, AG 22.5, delta ratio 0.505, osmolar gap 83', close(r.ag, 22.5, 1e-9) && close(r.agCorr, 22.5, 1e-9) && close(r.deltaRatio, 10.5 / 20.8) && close(r.osmCalc, 297) && close(r.osmGap, 83));
+  check('abg: ethylene glycol case, both a high-gap and a normal-gap acidosis, plus a raised osmolar gap', has(r, 'High anion gap metabolic acidosis') && has(r, 'Normal anion gap metabolic acidosis') && has(r, 'Raised osmolar gap'));
+  check('abg: ethylene glycol case, the delta ratio only reaches 0.8 above a gap of 28.6', I({ ...EG, cl: 140 - 3.2 - 28.6 }).deltaRatio < 0.8 && I({ ...EG, cl: 140 - 3.2 - 28.7 }).deltaRatio > 0.8);
   // Random gases against Python.
   let ok = true, n = 0;
   for (const p of REF) {

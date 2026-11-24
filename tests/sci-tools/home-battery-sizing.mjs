@@ -39,6 +39,17 @@ export default async (check) => {
     check('battery: pasted columns found by name', p.load.length === 24 && p.load[3] === 0.53 && p.solar[10] === 2 && /load_kW/.test(p.note)); }
   { const p = parseProfile(Array.from({ length: 24 }, (_, i) => `${i}\t${1}\t${i}`).join('\n'));
     check('battery: no header uses the last two columns', p.load[5] === 1 && p.solar[5] === 5); }
+  // The measured Polish year of src/blog/discoveries/residential-pv-battery-self-consumption-poland.md
+  // (Goryl 2025, Energies 18: 4090): 7.28 kWp, 6474.59 kWh of solar, 6885.44 kWh of use, 8 kWh usable at 5 kW.
+  { const base = template({ days: 365, dailyLoad: 6885.44 / 365, kwp: 7.28, yieldPerKwp: 6474.59 / 7.28 / 365, swing: 0.8 });
+    const load = Float64Array.from(base.load, (v, i) => v * (1 + 0.4 * Math.cos((2 * Math.PI * (Math.floor(i / 24) - 10)) / 365)));
+    const tot = load.reduce((s, x) => s + x, 0);
+    for (let i = 0; i < load.length; i++) load[i] *= 6885.44 / tot;
+    const bb = { cap: 8, power: 5, rte: 0.9, reserve: 0 };
+    const no = simulate(load, base.solar, { ...bb, cap: 0, power: 0 }), yes = simulate(load, base.solar, bb);
+    check('battery: Polish measured year, self-consumption 34.9 % with no battery and 56.5 % with 8 kWh (paper 34.0 and 56.1)', near(100 * no.selfConsumption, 34.9, 0.05) && near(100 * yes.selfConsumption, 56.5, 0.05) && near(100 * yes.selfSufficiency, 51.1, 0.05));
+    check('battery: Polish year exports 2819 kWh and puts 1395 kWh of solar into the battery (paper 2840.67 and 1432.44)', near(yes.exp, 2819, 1) && near(yes.charged, 1395, 1) && Math.round(yes.cycles) === 157);
+    check('battery: Polish year recommends the 8 kWh that is installed', recommend(sweep(load, base.solar, bb, sizeSteps(20)), 0.9).cap === 8); }
   const err = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
   check('battery: too few rows refused', /at least 24/.test(err(() => parseProfile('1,2\n3,4'))));
   check('battery: negative value refused', /negative/.test(err(() => parseProfile(Array.from({ length: 24 }, (_, i) => `${i === 4 ? -1 : 1},0`).join('\n')))));

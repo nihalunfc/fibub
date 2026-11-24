@@ -100,7 +100,7 @@ export type Stage = { n: number; x: number; y: number; section: 'rect' | 'strip'
  * Step off stages from the top (total condenser) down to xB. R = Infinity steps against y = x (total reflux).
  * Returns the stages (the last one is the reboiler), the fractional count, the best feed stage, and the path for drawing.
  */
-export function stepStages(eq: Eq, s: Spec, maxStages = 300) {
+export function stepStages(eq: Eq, s: Spec, maxStages = 5000) {
   const { xF, xD, xB, q, R } = s;
   if (!(xB < xF && xF < xD)) throw new Error('Need bottoms < feed < distillate (light-component mole fractions)');
   if (!(xB > 0 && xD < 1)) throw new Error('The distillate must be below 1 and the bottoms above 0; a perfect split needs infinite stages');

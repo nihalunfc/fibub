@@ -17,6 +17,11 @@ export default async (check) => {
   { const p = patch(10e9, 2.2, 0.1588e-2); check('antenna: Balanis example 14.1 (W 1.186 cm, εeff 1.972, ΔL 0.081 cm, L 0.906 cm; Balanis rounds c to 3e8, so W and L to 2e-3 and 1e-3 cm)', Math.abs(p.W * 100 - 1.186) < 2e-3 && Math.abs(p.eeff - 1.972) < 5e-4 && Math.abs(p.dL * 100 - 0.081) < 5e-4 && Math.abs(p.L * 100 - 0.906) < 1e-3);
     check('antenna: Balanis examples 14.2 and 14.3 (Rin about 228 Ω, inset about 0.312 cm)', Math.abs(p.Rin - 228.3) < 0.5 && Math.abs(p.inset * 100 - 0.3126) < 0.001); }
   { const p = patch(2.45e9, 4.4, 1.6e-3, 400); check('antenna: no inset when Z0 is above the edge resistance', p.inset === null); }
+  { // The Ca3(BO3)2 ceramic patch of Liu et al. (2025), Crystals 15(7): 599, as used in the blog article
+    // low-permittivity-ceramic-patch-antenna-transmission-line-model (14.97 GHz, er 5.95, h 1.4 mm).
+    const p = patch(14.97e9, 5.95, 1.4e-3, 50);
+    check('antenna: CBO ceramic patch 5.3714 x 3.4734 mm, eeff 4.6932, dL 0.57430 mm', close(p.W, 5.371450e-3, 1e-5) && close(p.L, 3.473436e-3, 1e-5) && close(p.eeff, 4.69321, 1e-5) && close(p.dL, 5.743022e-4, 1e-5));
+    check('antenna: CBO ceramic patch edge resistance 369.33 ohm and 50 ohm inset 1.3201 mm', close(p.Rin, 369.328, 1e-5) && close(p.inset, 1.32012e-3, 1e-5)); }
   check('antenna: J0 by integral = scipy j0', [0.5, 2, 7.3, 15].every((x, i) => Math.abs(besselJ0(x) - REF.j0[i]) < 1e-10));
   { const d = dipole(14.2e6, 0.95); check('antenna: 14.2 MHz dipole λ 21.11 m, λ/2 10.556 m, cut 10.028 m', close(d.lambda, 21.1121, 1e-5) && close(d.half, 10.5561, 1e-5) && close(d.length, 0.95 * C0 / 14.2e6 / 2, 1e-12) && close(d.leg * 2, d.length, 1e-12)); }
   { const m = monopole(446e6, 1); check('antenna: 446 MHz quarter-wave 16.80 cm', close(m.length, 0.168044, 1e-5)); }

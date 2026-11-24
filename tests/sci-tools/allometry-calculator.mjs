@@ -36,4 +36,10 @@ export default async (check) => {
   near('scaling law 3.4 × 70^0.75', scale(3.4, 0.75, 70), 3.4 * 70 ** 0.75, 1e-15);
   let threw = false; try { fitAllometry([1, 2, -3], [1, 2, 3]); } catch { threw = true; }
   check('allometry: refuses values at or below zero', threw);
+  // New with the sterlet article (Kim 2025, Hydrobiology 4: 24): phases with a common exponent 0.608 pooled into one line.
+  { const ph = [[5, 0.0241, 0.1051, 2.17], [10, 0.2884, 0.6131, 2.38], [14, 0.6438, 2.6368, 3.77]];
+    const Ms = ph.flatMap(([n, lo, hi]) => Array.from({ length: n }, (_, i) => lo * (hi / lo) ** (i / (n - 1))));
+    const Ys = ph.flatMap(([n, lo, hi, a]) => Array.from({ length: n }, (_, i) => a * (lo * (hi / lo) ** (i / (n - 1))) ** 0.608));
+    near('sterlet: three phases at b = 0.608 pooled give b = 0.7709', fitAllometry(Ms, Ys).b, 0.7709, 1e-4);
+    near('sterlet: phase 2, b = 0.540 ± 0.096 from 10 fish, p against 1 = 0.00137', testExponent({ b: 0.54, seB: 0.096, n: 10, bLo: 0, bHi: 0 }, 1).p, 0.00137, 5e-3); }
 };

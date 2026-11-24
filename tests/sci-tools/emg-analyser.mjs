@@ -37,4 +37,9 @@ export default async (check) => {
   check('emg: median frequency slope (scipy linregress)', near(tl.b, -1.4193903600426927, 1e-9) && near(tl.a, 148.09670900726724, 1e-9) && near(tl.r2, 0.7040041405958731, 1e-9) && near(tl.seb, 0.16021386321158054, 1e-9));
   let threw = false; try { E.fatigue(y, fs, 0.1, 0.1, 256, 20, 450); } catch { threw = true; }
   check('emg: window shorter than a segment throws', threw);
+  // New with the esports wrist-extensor article (Tholl et al. 2025): 10 s windows of made-up EMG at 2000 Hz, one-pole spectrum, mean over seeds 1 to 10.
+  { const FS = 2000, win = (fc, seed, nseg = 512) => { const s = E.synthEmg({ fs: FS, dur: 11, bursts: [[0.5, 10.5]], f0: fc, f1: fc, seed }); return E.fatigue(s.x.slice(FS * 0.5, FS * 10.5), FS, 10, 10, nseg, 20, 450)[0].mdf; };
+    const m = (fc, n) => { let t = 0; for (let i = 1; i <= 10; i++) t += win(fc, i, n); return t / 10; };
+    check('emg: 10 s window median frequency 94.85 Hz at corner 80 Hz, 101.06 Hz at 90 Hz', near(m(80, 512), 94.8474, 0.01) && near(m(90, 512), 101.0603, 0.01));
+    check('emg: the segment length moves the same signal by 3.4 Hz (256: 92.85, 2048: 96.21)', near(m(80, 256), 92.8470, 0.01) && near(m(80, 2048), 96.2114, 0.01)); }
 };

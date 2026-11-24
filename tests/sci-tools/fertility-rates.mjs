@@ -21,6 +21,13 @@ export default async (check) => {
   // Constant ASFR 0.1 over 15-49 in 5-year groups: TFR 3.5, mean age 32.5.
   const c = F.fertility({ labels, ...g, births: g.ages.map(() => 100), women: g.ages.map(() => 1000) }, { srb: 1, radix: 1, pAM: 1 });
   check('fertility: flat schedule by hand', near(c.tfr, 3.5) && near(c.mac, 32.5) && near(c.grr, 1.75) && near(c.nrr, 1.75));
+  // New with the Amish fertility article: counts of women and of women with a birth (Stone, Anderson and Thiehoff 2025, Table 1).
+  const pdW = [1944, 1510, 1325, 1191, 1053, 910, 755], pdB = [19, 326, 475, 343, 210, 106, 35];
+  const cpW = [12657, 10147, 8688, 7094, 6016, 4996, 4038], cpB = [964, 2271, 2774, 1991, 1206, 460, 55];
+  const ap = F.fertility({ labels, ...g, births: pdB, women: pdW }, { srb: 1.05, radix: 1, pAM: 0.97 });
+  const ac = F.fertility({ labels, ...g, births: cpB, women: cpW }, { srb: 1.05, radix: 1, pAM: 0.97 });
+  check('fertility: Amish ACS counts give TFR 6.172 and mean age 31.49', Math.abs(ap.tfr - 6.1722) < 5e-4 && Math.abs(ap.mac - 31.49) < 5e-3 && Math.abs(ap.gfr - 174.26) < 0.01);
+  check('fertility: Amish directory counts give TFR 6.030, GFR 181.2 and mean age 30.14', Math.abs(ac.tfr - 6.0303) < 5e-4 && Math.abs(ac.gfr - 181.24) < 0.01 && Math.abs(ac.mac - 30.14) < 5e-3);
   let bad = 0;
   for (const f of [() => F.groupsOf(['15-19', '25-29']), () => F.fertility({ ...d, women: d.women.map(() => 0) }, { srb: 1.05, radix: 1e5 }), () => F.fertility({ ...d, L: undefined }, { srb: 1.05, radix: 1e5, pAM: 2 }), () => F.fertility({ ...d, femaleBirths: d.births.map((b) => b + 1) }, { srb: 1.05, radix: 1e5 })]) { try { f(); } catch { bad++; } }
   check('fertility: bad input refused', bad === 4);

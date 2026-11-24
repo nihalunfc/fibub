@@ -80,4 +80,18 @@ export default async (check) => {
     const meanOk = !Number.isFinite(M.variance) || Math.abs(s.reduce((a, b) => a + b, 0) / n - M.mean) < 5 * Math.sqrt(M.variance / n);
     check(`distributions: ${d.id} sample of ${n} passes Kolmogorov–Smirnov at 1 % (D √n = ${(D * Math.sqrt(n)).toFixed(2)}) and its mean`, D * Math.sqrt(n) < 1.63 && meanOk && s.every((v) => v >= d.support(p)[0] && v <= d.support(p)[1]));
   }
+
+  // Blog: src/blog/discoveries/road-accident-count-overdispersion-negative-binomial.md. A count-model negative
+  // binomial with mean mu and dispersion theta (variance mu + mu^2/theta) is nbinom with r = theta and
+  // p = theta / (theta + mu). At mu = 1 and theta = 0.1499 the tail is 18.8 times the Poisson one.
+  {
+    const th = 0.1499, par = { r: th, p: th / (th + 1) }, nb = DIST.nbinom, po = DIST.poisson;
+    const M = nb.moments(par);
+    near('nbinom as a count model: variance mu + mu^2/theta at mu = 1, theta = 0.1499', M.variance, 7.671114, 1e-6);
+    near('nbinom as a count model: mean is 1', M.mean, 1, 1e-12);
+    near('nbinom as a count model: P(X = 0) at theta = 0.1499', nb.pdf(0, par), 0.7368171, 1e-6);
+    near('nbinom as a count model: P(X >= 5) at theta = 0.1499', nb.sf(4, par), 0.0686797, 1e-6);
+    near('nbinom as a count model: that tail is 18.77 times the Poisson(1) tail', nb.sf(4, par) / po.sf(4, { lambda: 1 }), 18.77, 1e-3);
+    near('chi-squared on 1 df: p above 266.04 (an AIC gap of 264.04)', DIST.chi2.sf(266.04, { k: 1 }), 8.2794e-60, 1e-4);
+  }
 };

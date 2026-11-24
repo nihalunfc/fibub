@@ -25,4 +25,10 @@ export default async (check) => {
   check('hx: NTU from ε inverts, NaN out of reach', near(H.ntuFor('counter', 0.9, 1), 9, 1e-9) && Number.isNaN(H.ntuFor('parallel', 0.7, 1)));
   const r = H.rate('counter', 4000, { Thi: 90, Tci: 20, Ch: 2000, Cc: 4000 });
   check('hx: rating energy balance', near(r.Q, 2000 * (90 - r.Tho), 1e-9) && near(r.Q, 4000 * (r.Tco - 20), 1e-9) && near(r.eps, H.effectiveness('counter', 2, 0.5), 1e-12));
+  // From src/blog/discoveries/earth-air-tube-riyadh-effectiveness-ntu-temperature-drop.md: the buried pipe of
+  // Alanazi et al. (2026), doi:10.3390/en19215355, with the soil as an effectively infinite capacity (Cr = 0).
+  check('hx: earth tube article, effectiveness at NTU 0.78 with Cr = 0', near(H.effectiveness('counter', 0.78, 0), 0.5415939886947765, 1e-12)
+    && near(H.ntuFor('counter', 0.65, 0), 1.0498221244986778, 1e-9));
+  { const e = H.rate('counter', 1.4 * 18.66, { Thi: 42.3, Tci: 25.4, Ch: 0.02408 * 1005, Cc: 1e7 });
+    check('hx: earth tube article, rating at 20 L/s gives an 11.2 K drop', near(e.Tho, 31.14211923595775, 1e-9) && near(e.eps, 0.6602296310084169, 1e-9) && near(e.Q, 270.02517764212797, 1e-9)); }
 };

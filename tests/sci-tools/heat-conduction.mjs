@@ -30,4 +30,10 @@ export default async (check) => {
     check('conduction: insulated pipe heat loss and surface temperature', near(p.Q, 35.9914593420971, 1e-12) && near(p.Tsurf, 28.183169519122472, 1e-12) && near(p.rcrit, 0.004, 1e-12));
     check('conduction: insulation thickness for a 40 °C surface matches brentq', Math.abs(HC.thicknessFor(o, 40) - 0.017509081595023394) < 1e-9); }
   check('conduction: zetas for Bi = 1', Math.abs(HC.zetas(1, 1)[0] - 0.8603335890193797) < 1e-10);
+  // From src/blog/discoveries/steel-stud-wall-thermal-break-clips-u-value-layers.md: the drywall build-up of
+  // Song and Kim (2024), doi:10.3390/buildings14093032, with 25 mm of gypsum board each side (our assumption)
+  // and the ISO 6946 surface resistances. It must reproduce the paper's design U-value of 0.207 W/m2K.
+  { const d = HC.wall([{ name: 'Gypsum board', L: 0.025, k: 0.18 }, { name: 'Glass wool', L: 0.15, k: 0.034 }, { name: 'Gypsum board', L: 0.025, k: 0.18 }], 25, -15, 1 / 0.11, 1 / 0.04);
+    check('conduction: drywall article, R, U, flux and inside surface', near(d.Rtot, 4.83954248366013, 1e-12) && near(d.U, 0.20663110270781282, 1e-12)
+      && near(d.q, 8.265244108312514, 1e-12) && near(d.temps[1], 24.090823148085622, 1e-12)); }
 };

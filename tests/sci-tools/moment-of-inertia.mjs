@@ -17,4 +17,10 @@ export default async (check) => {
   const plate = composite([{ shape: 'box', m: 2, dims: [0.4, 0.3], x: 0, y: 0 }, { shape: 'cylinder', m: 0.2, dims: [0.05, 0.01], orient: 'along', x: 0.1, y: 0, hole: true }]);
   check('inertia: plate with a hole 0.0394167, centre of mass −0.011111, I_cm 0.0391944', near(plate.I, 0.03941666666666667) && near(plate.cx, -0.011111111111111112) && near(plate.Icm, 0.03919444444444444) && near(plate.M, 1.8));
   check('inertia: parallel axis I = I_cm + md² for a point offset in x and y', near(composite([{ shape: 'point', m: 3, dims: [], x: 0.3, y: 0.4 }]).I, 0.75));
+  // New with the blog article flywheel-store-island-genset-moment-of-inertia (E3S Web Conf 638, 01003, 2025):
+  // the paper's 800 kg steel rotor, 0.2 m radius, 0.8 m long. The solid-disc reading is the one its 16 kg m2 uses.
+  const rotor = composite([{ shape: 'cylinder', m: 800, dims: [0.2, 0.8], orient: 'along', x: 0, y: 0 }]);
+  check('inertia: flywheel paper rotor, solid disc 16 kg·m², radius of gyration 0.2/√2', near(rotor.I, 16) && near(rotor.k, 0.2 / Math.SQRT2));
+  check('inertia: the same rotor read as a thin ring gives 32, and as a 0.15-0.2 m rim 25 kg·m²', near(centralI('ring', 800, [0.2], 'along'), 32) && near(centralI('tube', 800, [0.15, 0.2, 0.8], 'along'), 25));
+  check('inertia: spin energy of the rotor, 3.1583 MJ at 6000 rpm and 153.9 kJ released by 148 rpm of droop', near(0.5 * rotor.I * ((6000 * 2 * Math.PI) / 60) ** 2, 3158273.408, 1e-9) && near(0.5 * rotor.I * (((6000 * 2 * Math.PI) / 60) ** 2 - ((5852 * 2 * Math.PI) / 60) ** 2), 153886.5209, 1e-9));
 };

@@ -16,4 +16,12 @@ export default async (check) => {
   { const w = P.widthFor(50, (x) => P.microstrip(x, 1.6e-3, 35e-6, 4.4).z0, 1e-5, 0.1); check('pcb: 50 Ω on 1.6 mm FR-4 ≈ 3 mm wide', rel(P.microstrip(w, 1.6e-3, 35e-6, 4.4).z0, 50, 1e-9) && w > 2.9e-3 && w < 3.1e-3); }
   { const p = P.perLength(50, 4); check('pcb: delay, L and C per metre', rel(p.delay, 2 / 299792458, 1e-12) && rel(p.L, 50 * p.delay, 1e-12) && rel(Math.sqrt(p.L / p.C), 50, 1e-12)); }
   check('pcb: no width when the target is out of reach', Number.isNaN(P.widthFor(500, (x) => P.microstrip(x, 1e-3, 0, 4.4).z0, 1e-5, 0.1)));
+  // The FR-4 patch antenna of Aslan et al. (2026), Electronics 15: 5054 (doi:10.3390/electronics15215054, CC BY 4.0):
+  // 36 mm patch on 1.6 mm FR-4, εr 4.4, 1 oz copper; the paper's own εeff is 4.07 and its patch mode 2.40 GHz.
+  const pa = P.microstrip(36e-3, 1.6e-3, P.OZ, 4.4);
+  check('pcb: the paper\'s 36 mm patch gives εeff 4.0724 and Z0 7.187 Ω', Math.abs(pa.eeff - 4.0724) < 5e-5 && Math.abs(pa.z0 - 7.1867) < 5e-4);
+  const wp = P.widthFor(50, (x) => P.microstrip(x, 1.6e-3, P.OZ, 4.4).z0, 1e-5, 0.02);
+  check('pcb: 50 Ω on that board is 3.017 mm wide with εeff 3.303', Math.abs(wp * 1000 - 3.0171) < 5e-4 && Math.abs(P.microstrip(wp, 1.6e-3, P.OZ, 4.4).eeff - 3.3026) < 5e-5);
+  const fPatch = 299792458 / (2 * (29.5e-3 + 2 * 0.74e-3) * Math.sqrt(pa.eeff));
+  check('pcb: 29.5 mm plus the paper\'s edge extension resonates at 2.3976 GHz', Math.abs(fPatch / 1e9 - 2.3976) < 5e-5);
 };

@@ -41,4 +41,19 @@ export default async (check) => {
   // Parsing: duplicates merged, # lines left out, bad lines reported
   { const q = A.parseLevels('10,100,10\n10\t140\t30\n20;300;20\n# 40,2000,10,left out\nfoo bar\n50 700 40 twig'); check('age-depth: duplicates merged by error weighting, # left out, bad line found', q.levels.length === 3 && near(q.levels[0].age, 104, 1e-9) && near(q.levels[0].sd, 9.486832980505138, 1e-12) && q.left.length === 1 && q.bad.join() === '5' && q.levels[2].label === 'twig' && q.merged.length === 1); }
   check('age-depth: depth grid', A.depthGrid(0, 440).length === 177 && A.depthGrid(0, 10, 3).join() === '0,3,6,9,10');
+  // Blog article laptev-sea-deglacial-age-depth-model-reservoir-age: nine levels following the paper's two
+  // sedimentation rates (27 cm/kyr above 251 cm, 77 cm/kyr below), 1σ 100 and 120 years.
+  { const txt = ['depth_cm,age_cal_BP,sd,label', '30,1111,100,mbf', '100,3704,100,mbf', '180,6667,100,mbf', '251,9296,100,mbf',
+      '330,10325,120,mb', '430,11623,120,mb', '540,13052,120,mb', '660,14610,120,mb', '780,16169,120,mb'].join('\n');
+    const L = A.parseLevels(txt).levels, xx = L.map((l) => l.depth), yy = L.map((l) => l.age), ss = L.map((l) => l.sd);
+    check('age-depth: Laptev article, the two rates come back as 27 and 77 cm per thousand years',
+      L.length === 9 && near(1000 / A.linearSlope(xx, yy, 100, true), 27, 0.05) && near(1000 / A.linearSlope(xx, yy, 500, true), 77, 0.05));
+    const grid = A.depthGrid(0, 800, 5), mc = A.monteCarlo(L, grid, 2000, 1, true);
+    check('age-depth: Laptev article, no date conflicts so every draw is kept', mc.n === 2000 && mc.tries === 2000);
+    const w = mc.hi.map((v, i) => v - mc.lo[i]);
+    check('age-depth: Laptev article, the 95 % envelope is 361 years wide at 400 cm and under 455 years almost everywhere',
+      near(w[grid.indexOf(400)], 361, 2) && w.filter((v) => v < 455).length === 148 && near(Math.min(...w), 274, 2) && near(Math.max(...w), 585, 2));
+    const sp = A.splineForChi2(xx, yy, ss, L.length), fl = A.flagLevels(L, sp);
+    check('age-depth: Laptev article, the default spline flags the change in rate at 251 cm (z = 2.54)',
+      near(sp.chi2, 9, 1e-6) && fl.filter((f) => f.outlier).length === 1 && fl[3].outlier && near(fl[3].z, 2.54, 0.01)); }
 };

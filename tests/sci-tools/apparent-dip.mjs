@@ -28,4 +28,11 @@ export default async (check) => {
   { const r = A.threePoint([{ e: 0, n: 0, z: 100 }, { e: 100, n: 0, z: 100 }, { e: 0, n: 100, z: 0 }]);
     check('three-point: a plane falling 100 m over 100 m to the north is 270 / 45, dipping towards 000', Math.abs(r.plane.strike - 270) < 1e-9 && Math.abs(r.plane.dip - 45) < 1e-9 && Math.abs(r.dipDir) < 1e-9); }
   check('three-point: points on one line have no answer', A.threePoint([{ e: 0, n: 0, z: 0 }, { e: 1, n: 1, z: 1 }, { e: 2, n: 2, z: 2 }]) === null);
+  // New with the Kiruna ore-body article: a body striking 000 and dipping 55 degrees east, sections at several azimuths.
+  { const P = { strike: 0, dip: 55 };
+    check('apparent dip: strike 000 / dip 55 seen towards 005, 010, 020, 090 is 7.10, 13.93, 26.03 and 55.00; along the strike 0; rising towards 190 is -13.93', Math.abs(A.apparentDip(P, 5) - 7.10) < 0.005 && Math.abs(A.apparentDip(P, 10) - 13.93) < 0.005 && Math.abs(A.apparentDip(P, 20) - 26.03) < 0.005 && Math.abs(A.apparentDip(P, 90) - 55) < 1e-9 && Math.abs(A.apparentDip(P, 0)) < 1e-9 && Math.abs(A.apparentDip(P, 190) + 13.93) < 0.005);
+    check('apparent dip: a 26.03 degree apparent dip towards 020 gives back the 55 degree true dip when the strike is 000', Math.abs(A.trueDipFromApparent(0, 20, A.apparentDip(P, 20)) - 55) < 1e-9);
+    const v = A.borehole({ plane: P, dist: 1000, trend: 90, rise: 0, holeTrend: 0, holePlunge: 90, T: 80 });
+    check('borehole: vertical hole 1000 m east of the outcrop line meets a 55 degree east-dipping body at 1428.15 m and cuts 139.48 m of a true 80 m thickness', Math.abs(v.vertical - 1428.15) < 0.01 && Math.abs(v.through - 139.48) < 0.01);
+    check('borehole: the same body at 50 and 60 degrees is met at 1191.75 m and 1732.05 m', Math.abs(A.borehole({ plane: { strike: 0, dip: 50 }, dist: 1000, trend: 90, rise: 0, holeTrend: 0, holePlunge: 90 }).vertical - 1191.75) < 0.01 && Math.abs(A.borehole({ plane: { strike: 0, dip: 60 }, dist: 1000, trend: 90, rise: 0, holeTrend: 0, holePlunge: 90 }).vertical - 1732.05) < 0.01); }
 };

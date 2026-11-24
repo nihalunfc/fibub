@@ -35,4 +35,10 @@ export default async (check) => {
   { const r4 = footprint(s4); check('bad lines: negative amount and non-number explained, counted as 0', r4.errors.length === 2 && r4.errors[0].includes('cannot be negative') && r4.errors[1].includes('must be numbers')); }
   const rows = csvRows(s, r);
   check('CSV: header, 10 lines + flight + total', rows.length === 13 && rows[0][6] === 'kg_co2e' && rows[12][0] === 'Total' && close(rows[12][6], 12106.336, 1e-9) && rows[11][3] === 'passenger-km' && rows[5][5] === 2);
+  // New with the food GWP20 vs GWP100 article: one person's year of food, kg of food x kg CO2e per kg (values printed in the paper).
+  const diet = (rows, k) => ({ people: 1, flightFactor: 0, uplift: 0, flights: [], cats: [{ id: 'food', name: 'Food (per person)', perPerson: true, lines: rows.map((r) => ({ label: r[0], amount: r[1], unit: 'kg', factor: r[k] })) }] });
+  const heavy = [['Beef', 15, 70.55, 28.73], ['Chicken breast', 20, 4.63, 4.12], ['Cheddar cheese', 10, 21.49, 9.78], ['Rice', 25, 6.48, 2.66], ['Black beans', 5, 0.68, 0.62], ['Apple', 30, 0.35, 0.34]];
+  const light = [['Beef', 3, 70.55, 28.73], ['Chicken breast', 15, 4.63, 4.12], ['Cheddar cheese', 5, 21.49, 9.78], ['Rice', 25, 6.48, 2.66], ['Black beans', 25, 0.68, 0.62], ['Apple', 60, 0.35, 0.34]];
+  check('food diet: meat-and-dairy year is 1,541.65 kg CO2e on 20-year factors and 690.95 on 100-year factors', close(footprint(diet(heavy, 2)).total, 1541.65, 1e-9) && close(footprint(diet(heavy, 3)).total, 690.95, 1e-9));
+  check('food diet: plant-leaning year is 588.55 and 299.29 kg, a 61.8 % and 56.7 % cut', close(footprint(diet(light, 2)).total, 588.55, 1e-9) && close(footprint(diet(light, 3)).total, 299.29, 1e-9) && close(1 - 588.55 / 1541.65, 0.618, 5e-4) && close(1 - 299.29 / 690.95, 0.567, 5e-4));
 };

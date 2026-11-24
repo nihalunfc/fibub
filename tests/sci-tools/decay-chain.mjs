@@ -1,6 +1,6 @@
 // #945 decay chain (Bateman). Reference values from a 60-digit matrix exponential (mpmath expm) of the chain's
 // rate matrix, written for these tests.
-import { activities, divDiffExp, eqRatios, eqKind, peakTime, peakTime2, eqTime, lambdaOf, CHAINS } from '../../src/lib/sci/phchain.ts';
+import { atoms, activities, divDiffExp, eqRatios, eqKind, peakTime, peakTime2, eqTime, lambdaOf, CHAINS } from '../../src/lib/sci/phchain.ts';
 export default async (check) => {
   const H = 3600, D = 86400, Y = 365.25 * D, MIN = 60;
   const close = (a, b, r = 1e-9) => a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= r * Math.abs(b[i]) + 1e-12);
@@ -22,4 +22,10 @@ export default async (check) => {
   check('chain: equilibrium kinds', eqKind(28.8 * Y, 64 * H) === 'secular' && eqKind(66 * H, 6 * H) === 'transient' && eqKind(1 * H, 10 * H) === 'none');
   check('chain: no equilibrium when the daughter lives longer', eqRatios([lambdaOf(1 * H), lambdaOf(10 * H)], [1])[1] === null && eqTime([lambdaOf(1 * H), lambdaOf(10 * H)], [1], [1, 0], 1, 0.01, 1e6) === null);
   check('chain: example chains present', Object.keys(CHAINS).length === 7 && CHAINS.ra226.members.length === 6);
+  // New with the Pb-212 generator article (Roberts et al. 2025): Ra-224 (3.632 d) → Pb-212 (10.64 h) → Bi-212 (60.55 min) → stable Pb-208.
+  { const lr = [lambdaOf(3.632 * D), lambdaOf(10.64 * H), lambdaOf(60.55 * MIN), 0], N0 = [350e6 / lr[0], 0, 0, 0];
+    check('Pb-212 on a fresh Ra-224 generator peaks at 36.77 h', Math.abs(peakTime2(lr[0], lr[1]) / H - 36.7737) < 1e-3);
+    const n25 = atoms(lr, [1, 1, 1], N0, 25 * H), n72 = atoms(lr, [1, 1, 1], N0, 72 * H);
+    check('stable Pb-208 per Pb-212 atom: 0.986 at 25 h, 4.554 at 72 h (paper: 0.984 and 4.551)', Math.abs(n25[3] / n25[1] - 0.98644) < 1e-4 && Math.abs(n72[3] / n72[1] - 4.55417) < 1e-4);
+    check('a stable end member keeps every atom', Math.abs(n72.reduce((a, b) => a + b, 0) / N0[0] - 1) < 1e-12); }
 };

@@ -21,4 +21,11 @@ export default async (check) => {
   check('constants: concise notation and grouping', C.concise(find('Newtonian constant of gravitation'), '2018') === '6.674 30(15) × 10⁻¹¹' && C.concise(find('Vacuum electric permittivity'), '2018') === '8.854 187 8128(13) × 10⁻¹²' && C.show(find('Reduced Planck constant'), '2022') === '1.054 571 817… × 10⁻³⁴' && C.show(find('Speed of light in vacuum'), '2022') === '299 792 458');
   check('constants: search and groups', C.search('electron mass').length >= 3 && C.search('', 'Adopted values').length === 5 && C.search('BOLTZMANN').length === 3 && C.CONSTANTS.every((c) => C.GROUPS.includes(c.group)));
   check('constants: changes between 2018 and 2022', C.changed(find('Electron mass')) && !C.changed(find('Planck constant')) && !C.changed(find('Newtonian constant of gravitation')));
+  // New with the current-standard article (Landim and Sousa 2025, Acta IMEKO 14(4)): K_J = 2e/h, R_K = h/e², the 16:2065 comparator and one Josephson step at 20 GHz.
+  { const g = (sym, unit) => C.value(C.CONSTANTS.find((k) => k.sym === sym && (!unit || k.unit === unit)), '2022');
+    const h = g('h', 'J Hz⁻¹'), e = g('e'), KJ = (2 * e) / h, RK = h / (e * e);
+    check('constants: K_J = 2e/h and R_K = h/e² match the page to 1e-9, and K_J R_K = 2/e', Math.abs(g('K_J') / KJ - 1) < 1e-9 && Math.abs(g('R_K') / RK - 1) < 1e-9 && Math.abs((KJ * RK) / (2 / e) - 1) < 1e-14);
+    check('constants: the paper\'s printed R_K 25812.8074593045 Ω equals h/e² (6e-16), and its K_J is the true value times 1000 in GHz/V', Math.abs(25812.8074593045 / RK - 1) < 1e-15 && Math.abs(483597848.416984 / (KJ / 1e9) - 1000) < 1e-5);
+    const R2 = (RK / 2) * (16 / 2065), step = 20e9 / KJ;
+    check('constants: 20 GHz gives 41.3567 µV per step; R_K/2 scaled by 16:2065 is 100.0012 Ω; the step drives 0.41356 µA', Math.abs(step * 1e6 - 41.3567) < 5e-5 && Math.abs(R2 - 100.00119) < 5e-5 && Math.abs((step / R2) * 1e6 - 0.41356) < 5e-6); }
 };

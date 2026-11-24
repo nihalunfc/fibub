@@ -38,7 +38,41 @@ export default async (check) => {
   check('home range: headings 0, 90, 180 and right turns of +90', tr[0].heading === 0 && tr[1].heading === 90 && tr[2].heading === 180 && tr[1].turn === 90 && tr[2].turn === 90 && Number.isNaN(tr[0].turn));
   near('type 7 quantile', quantile([1, 2, 3, 4], 0.95), 3.85, 1e-12);
   check('home range: time stamps', readTime('2026-05-01 06:00') === Date.UTC(2026, 4, 1, 6) && readTime('2026-05-01T06:00:30Z') === Date.UTC(2026, 4, 1, 6, 0, 30) && Number.isNaN(readTime('soon')));
+  // New with the pig-nosed turtle article (Sawaki et al. 2025, JPSL 15: 554): 13 fixes of a simulated three-day
+  // river track, and the rule that the 50 % area over the 95 % area can never reach 0.5 / 0.95 = 0.5263.
+  {
+    const T = TURTLE.trim().split('\n').map((l) => l.split('\t'));
+    const tp = project(T.map((r) => ({ lat: +r[1], lon: +r[2] }))).pts;
+    const th = href(tp), tk = kde(tp, th, 200);
+    const a95 = isopleth(tk, 95).area, a50 = isopleth(tk, 50).area;
+    near('turtle: reference bandwidth', th, 177.32387, 1e-5);
+    near('turtle: 100 % MCP area', mcp(tp).area, 188852.5, 1e-5);
+    near('turtle: 95 % kernel area', a95, 1289719.3, 1e-5);
+    near('turtle: 50 % kernel area', a50, 354751.3, 1e-5);
+    near('turtle: core ratio', a50 / a95, 0.2750608, 1e-6);
+    const ratios = [40, 100, 200, 400].map((h) => { const k2 = kde(tp, h, 200); return isopleth(k2, 50).area / isopleth(k2, 95).area; });
+    near('turtle: core ratio at h = 40 m', ratios[0], 0.3043113, 1e-5);
+    near('turtle: core ratio at h = 400 m', ratios[3], 0.2416809, 1e-5);
+    check('home range: the core ratio never reaches 0.5 / 0.95', ratios.every((r) => r < 0.5 / 0.95));
+    const steps13 = steps(tp, T.map((r) => readTime(r[0])));
+    check('home range: turtle track is 12 steps of 69 to 146 m', steps13.length === 12 && Math.abs(Math.min(...steps13.map((x) => x.len)) - 69.4515) < 1e-3 && Math.abs(Math.max(...steps13.map((x) => x.len)) - 145.9403) < 1e-3);
+  }
 };
+
+const TURTLE = `2023-11-26 12:00	-6.30000	139.60000
+2023-11-26 18:00	-6.30001	139.60078
+2023-11-27 00:00	-6.30001	139.60193
+2023-11-27 06:00	-6.29899	139.60272
+2023-11-27 12:00	-6.29825	139.60298
+2023-11-27 18:00	-6.29757	139.60369
+2023-11-28 00:00	-6.29695	139.60379
+2023-11-28 06:00	-6.29655	139.60443
+2023-11-28 12:00	-6.29579	139.60525
+2023-11-28 18:00	-6.29546	139.60647
+2023-11-29 00:00	-6.29543	139.60742
+2023-11-29 06:00	-6.29562	139.60856
+2023-11-29 12:00	-6.29601	139.60982`;
+
 
 const EXAMPLE = `time	lat	lon
 2026-05-01 00:00	52.102422	-1.295625

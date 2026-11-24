@@ -19,5 +19,15 @@ export default async (check) => {
   check('rock mass: RMR = 9 ln Q + 44 gives 44 at Q = 1 and inverts', R.rmrFromQ(1, 9, 44) === 44 && Math.abs(R.qFromRmr(R.rmrFromQ(6.11, 9, 44), 9, 44) - 6.11) < 1e-12 && Math.abs(R.rmrFromQ(6.1111, 9, 44) - 60.29) < 0.01);
   check('rock mass: RMR sum and adjustment', R.rmr([7, 13, 10, 20, 10], -5).basic === 60 && R.rmr([7, 13, 10, 20, 10], -5).total === 55);
   check('rock mass: GSI = RMR89 dry − 5, flagged below 23', R.gsiFromRmr([7, 13, 10, 20, 10], 15).gsi === 60 && !R.gsiFromRmr([1, 2, 2, 3, 0], 15).valid);
+  // The five Sidan Dam spillway stations of src/blog/discoveries/spillway-tunnel-rock-mass-q-rmr-sidan-dam.md
+  // (Arianto et al. 2023, E3S Web of Conf. 468: 02004), whose Q and RMR the paper reports.
+  { const ST = [
+      { q: { rqd: 19, jn: 6, jr: 1, ja: 4, jw: 1, srf: 5 }, r: [2, 3, 15, 20, 7], Q: 0.158333333333, rmr: 35 },
+      { q: { rqd: 32, jn: 3, jr: 1, ja: 4, jw: 1, srf: 2.5 }, r: [1, 8, 15, 20, 10], Q: 1.066666666667, rmr: 42 },
+      { q: { rqd: 29, jn: 3, jr: 1, ja: 4, jw: 1, srf: 2.5 }, r: [2, 8, 15, 20, 10], Q: 0.966666666667, rmr: 43 },
+      { q: { rqd: 42, jn: 3, jr: 1, ja: 4, jw: 1, srf: 2.5 }, r: [2, 8, 15, 20, 10], Q: 1.4, rmr: 43 },
+      { q: { rqd: 34, jn: 6, jr: 1, ja: 4, jw: 1, srf: 5 }, r: [2, 8, 15, 20, 10], Q: 0.283333333333, rmr: 43 }];
+    check('rock mass: Sidan Dam tunnel gives the paper’s Q 0.16, 1.07, 0.97, 1.40, 0.28 and RMR 35, 42, 43, 43, 43', ST.every((s) => Math.abs(R.qValue(s.q).q - s.Q) < 1e-9 && R.rmr(s.r, -12).total === s.rmr));
+    check('rock mass: Barton’s correlation puts that inlet at RMR 27.4, not the logged 35, and SRF 2.5 would double its Q', Math.abs(R.rmrFromQ(R.qValue(ST[0].q).q, 9, 44) - 27.4) < 0.05 && Math.abs(R.qValue({ ...ST[0].q, srf: 2.5 }).q - 0.316666667) < 1e-9); }
   check('rock mass: length lists parse; bad entries reported', (() => { const p = R.parseLengths('25, 8\n12;4 x 30'); return p.values.join() === '25,8,12,4,30' && p.bad.join() === 'x'; })());
 };

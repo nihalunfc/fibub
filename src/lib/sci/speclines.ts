@@ -42,7 +42,7 @@ export const SPEC_LINES: SpecLine[] = [
   // Quasars (vacuum, ultraviolet)
   { name: 'N V', aa: 1240.14, set: 'quasar' }, { name: 'Si II', aa: 1260.42, set: 'quasar' }, { name: 'O I', aa: 1304.35, set: 'quasar' },
   { name: 'C II', aa: 1335.3, set: 'quasar' }, { name: 'Si IV + O IV]', aa: 1399.8, set: 'quasar' }, { name: 'C IV', aa: 1549.06, set: 'quasar', strong: true },
-  { name: 'He II', aa: 1640.42, set: 'quasar' }, { name: 'C III]', aa: 1908.73, set: 'quasar', strong: true },
+  { name: 'N IV]', aa: 1486.5, set: 'quasar' }, { name: 'He II', aa: 1640.42, set: 'quasar' }, { name: 'N III]', aa: 1750.0, set: 'quasar' }, { name: 'C III]', aa: 1908.73, set: 'quasar', strong: true },
   { name: 'Hβ (broad)', aa: 4861.33, set: 'quasar', strong: true }, { name: 'Hα (broad)', aa: 6562.8, set: 'quasar', strong: true },
   { name: '[O III] (quasar)', aa: 5006.84, set: 'quasar' },
   // Calibration lamps
@@ -98,7 +98,7 @@ export function identify(obs: number[], z: number, tol: number, sets: LineSet[],
 
 /** Redshifts at which several measured lines line up with known strong lines at once.
  *  Every pairing of a measured line with a known line proposes a z; proposals that agree within `dz` are grouped. */
-export function findRedshift(obs: number[], sets: LineSet[], zmin = -0.01, zmax = 7, dz = 5e-4, medium: 'air' | 'vac' = 'air') {
+export function findRedshift(obs: number[], sets: LineSet[], zmin = -0.01, zmax = 15, dz = 5e-4, medium: 'air' | 'vac' = 'air') {
   const pool = SPEC_LINES.filter((l) => sets.includes(l.set) && l.strong);
   const props: { z: number; i: number; line: SpecLine }[] = [];
   obs.forEach((o, i) => { for (const l of pool) { const z = o / restIn(l, medium) - 1; if (z >= zmin && z <= zmax) props.push({ z, i, line: l }); } });

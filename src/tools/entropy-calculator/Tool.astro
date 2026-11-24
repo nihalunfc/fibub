@@ -322,7 +322,7 @@ import DataFile from '../../components/DataFile.astro';
   });
   q('.en-ex').addEventListener('click', () => { EX[mode](); if (mode === 'text') { q('.en-clear').hidden = true; q<HTMLSelectElement>('.en-unit').disabled = false; } run(); });
   q('.en-pre').addEventListener('change', () => { const v = q<HTMLSelectElement>('.en-pre').value; if (v) { ta('.en-dist').value = v; run(); } });
-  q('.en-bp').addEventListener('input', () => { const p = Number(q<HTMLInputElement>('.en-bp').value); ta('.en-dist').value = `${p}, ${+(1 - p).toFixed(2)}`; run(); });
+  q('.en-bp').addEventListener('input', () => { const p = Number(q<HTMLInputElement>('.en-bp').value); ta('.en-dist').value = `${p}, ${+(1 - p).toFixed(12)}`; run(); });
   q('.en-open').addEventListener('click', () => q<HTMLInputElement>('.en-file').click());
   q('.en-file').addEventListener('change', async () => {
     const inp = q<HTMLInputElement>('.en-file'), file = inp.files?.[0]; inp.value = '';

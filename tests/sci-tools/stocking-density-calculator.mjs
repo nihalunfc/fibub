@@ -18,4 +18,18 @@ export default async (check) => {
   check('stock: day 70 as Python (432.337 g, 1465.23 fish, 633.475 kg, 42.0086 kg/m³)', near(e.w, 432.33730386336106, 1e-12) && near(e.n, 1465.2330736405286, 1e-12) && near(e.kg, 633.4749165891717, 1e-12) && near(e.density, 42.00861012495532, 1e-12) && near(e.feedDay, 12.669498331783434, 1e-12));
   check('stock: cumulative feed as scipy quad (504.556 kg)', near(e.feedCum, 504.55636392707464, 1e-10));
   { const z = project({ count: 100, w0: 10, sgr: 0, lossPct: 0, feedPct: 3, V: 1, days: 10, step: 3 }); check('stock: no growth, no loss, last day added', z.map((x) => x.day).join() === '0,3,6,9,10' && near(z.at(-1).feedCum, 0.03 * 1 * 10, 1e-12)); }
+  // Blog: /blog/discoveries/largemouth-bass-aquaponic-stocking-density-biomass-fcr/ (Birolo et al. 2025, Fishes).
+  // 500 L tanks, bass of 109 g, 176 days, daily gains 0.69, 0.61 and 0.50 g/day, survival 73.9 %.
+  {
+    const V6 = volume({ kind: 'volume', V: 0.5 }), w0 = 109, days = 176;
+    const sg = [0.69, 0.61, 0.5].map((g) => +sgr(w0, w0 + g * days, days).toFixed(3));
+    check(`stock: the paper's three daily gains give SGR 0.425, 0.390, 0.336 %/day (${sg.join()})`, sg.join() === '0.425,0.39,0.336');
+    check('stock: 28 fish of 109 g in 500 L = 6.10 kg/m³, the most 6.2 allows', near(biomass(28, w0) / V6, 6.104, 1e-3) && maxFish(6.2, V6, w0) === 28 && maxFish(3.1, V6, w0) === 14 && maxFish(4.1, V6, w0) === 18);
+    const lossMonth = 100 * (1 - Math.pow(0.739, 30 / days));
+    const d6 = project({ count: 28, w0, sgr: sgr(w0, w0 + 0.5 * days, days), lossPct: lossMonth, feedPct: 0.605, V: V6, days, step: 30 }).at(-1);
+    check(`stock: D6 reaches 197.0 g, 8.15 kg/m³ and 3.77 kg of feed on day 176 (${d6.w.toFixed(1)}, ${d6.density.toFixed(2)}, ${d6.feedCum.toFixed(2)})`,
+      near(d6.w, 197, 1e-9) && near(d6.density, 8.152648, 1e-6) && near(d6.feedCum, 3.768852, 1e-6) && near(d6.n, 20.692, 1e-3));
+    check('stock: D6 FCR is 1.71 with the dead fish counted and 3.47 without', near(fcr(3.77, 3.052, 4.137, 1.12), 1.709751, 1e-6) && near(fcr(3.77, 3.052, 4.137), 3.474654, 1e-6));
+    check('stock: 109 g reaches 400 g after 306, 334 and 387 days', [0.69, 0.61, 0.5].map((g) => Math.round(daysTo(w0, 400, sgr(w0, w0 + g * days, days)))).join() === '306,334,387');
+  }
 };

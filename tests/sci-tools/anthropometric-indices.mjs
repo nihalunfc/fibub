@@ -40,4 +40,10 @@ export default async (check) => {
     const s = summary(vals), d = REF[key].desc;
     check(`anthro: batch ${key} values and summary match pandas`, vals.every((v, i) => (Number.isNaN(want[i]) ? Number.isNaN(v) : close(v, want[i], 1e-12))) && s.n === d.count && close(s.mean, d.mean) && close(s.sd, d.std, 1e-10) && close(s.min, d.min) && close(s.q1, d['25%']) && close(s.median, d['50%']) && close(s.q3, d['75%']) && close(s.max, d.max));
   }
+  // New with the preschool waist-to-height article: WHtR 0.50 at 100 cm is a 50 cm waist, and the paper's pooled 2 x 2 counts.
+  const wh = Object.fromEntries(indices({ height: 100, waist: 50 }).map((r) => [r.def.key, r.value]));
+  check('anthro: waist 50 cm at height 100 cm is WHtR 0.50 (and 60 cm is 0.60)', close(wh.whtr, 0.5) && close(indices({ height: 100, waist: 60 }).find((r) => r.def.key === 'whtr').value, 0.6));
+  const pooled = (n, m, sd) => { const N = n.reduce((a, b) => a + b, 0), mean = n.reduce((s, x, i) => s + x * m[i], 0) / N; const w = n.reduce((s, x, i) => s + (x - 1) * sd[i] ** 2, 0), b = n.reduce((s, x, i) => s + x * (m[i] - mean) ** 2, 0); return { mean, sd: Math.sqrt((w + b) / (N - 1)) }; };
+  const pl = pooled([950, 261, 206, 101], [0.487, 0.524, 0.521, 0.558], [0.032, 0.030, 0.037, 0.049]);
+  check('anthro: four WHtR groups pool to mean 0.5027 and SD 0.0402 (paper 0.503, 0.040)', close(pl.mean, 0.5027, 1e-3) && close(pl.sd, 0.0402, 2e-3));
 };

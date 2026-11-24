@@ -34,4 +34,16 @@ export default async (check) => {
   { const pairs = B.BENCHES.find((b) => b.id === 'pairs'); const a = new Float64Array([0.2, 0.9, 0.5, 0.6]); check('bigo: pair loop counts pairs summing over 1 (sum of products 1.69)', Math.abs(pairs.run(a) - 1.69) < 1e-12); }
   { const mm = B.BENCHES.find((b) => b.id === 'matmul'); const d = { n: 2, a: new Float64Array([1, 2, 3, 4]), b: new Float64Array([5, 6, 7, 8]) }; check('bigo: matrix multiply top-left = 19', mm.run(d) === 19); }
   { let t = 0; const ms = B.timeIt(() => 1, null, 10, () => (t += 1)); check('bigo: timeIt divides elapsed time by repetitions', ms === 1); }
+
+  // Blog: src/blog/discoveries/shortest-path-algorithm-runtime-scaling-directed-graphs.md. Shortest-path step counts
+  // on a directed graph with 2.8 edges per vertex: Dijkstra (V+E)log2 V = 3.8 n log2 n, Bellman-Ford V*E = 2.8 n^2,
+  // Floyd-Warshall n^3, all written through the plotter's own growth functions.
+  {
+    const dij = (n) => 3.8 * C.nlogn.g(n), bf = (n) => 2.8 * C.n2.g(n), fw = (n) => C.n3.g(n);
+    check(`bigo: shortest-path step counts at 1,000 vertices (${dij(1000).toFixed(0)}, ${bf(1000).toExponential(2)}, ${fw(1000).toExponential(2)})`,
+      close(dij(1000), 37869.96, 1e-2) && close(bf(1000), 2.8e6, 1e-6) && close(fw(1000), 1e9, 1e-6));
+    const ns = [100, 200, 400, 800, 1600, 3200, 6400], r = B.fitClasses(ns, ns.map(dij));
+    check(`bigo: those Dijkstra counts fit O(n log n) with b = 3.8 and log-log slope 1.15356 (${r.best.name}, ${r.best.b.toPrecision(8)}, ${r.slope.toPrecision(6)})`,
+      r.best.id === 'nlogn' && close(r.best.b, 3.8, 1e-12) && close(r.slope, 1.15356, 1e-5) && r.best.r2 === 1);
+  }
 };

@@ -21,4 +21,19 @@ export default async (check) => {
   { const d = roomLoad({ ...base, rhoC: 0.1, people: 0, margin: 0 });
     check('hvac: dry outdoor air gives no negative latent total', d.lat === 0); }
   { const hi = roomLoad({ ...base, p: 79500 }); check('hvac: thinner air at altitude carries less heat', hi.heat < r.heat && hi.sens < r.sens); }
+  // From src/blog/discoveries/cleanroom-production-room-cooling-load-sensible-latent-check.md: the production room
+  // of Kusaeri et al. (2026), doi:10.1051/e3sconf/202675403002, rebuilt with our envelope and outdoor state.
+  {
+    const a60 = air(23, 101325, { rh: 0.6 }), a25 = air(23, 101325, { rh: 0.25 });
+    check('hvac: cleanroom article, the paper two air states', near(a60.abs, 12.337315383553845, 1e-12) && near(a25.abs, 5.1405480387438525, 1e-12)
+      && near((a60.abs - a25.abs) * 600 / 1000, 4.318060406885996, 1e-12));
+    const room = roomLoad({
+      elements: [{ name: 'Partition walls and door', area: 2 * (4.5 + 4.56) * 2.8, U: 0.5 }, { name: 'Ceiling', area: 20.54, U: 0.4 }],
+      volume: 57.5, ach: 0, ventLps: 424.02 * 1000 / 3600, p: 101325 * (1 - 2.25577e-5 * 700) ** 5.2559,
+      tiH: 25, toH: 25, rhoH: 0.5, tiC: 25, rhiC: 0.25, toC: 32, rhoC: 0.7,
+      people: 4, perSens: 75, perLat: 55, lightW: 205.4, equipW: 1700, creditHeating: false, margin: 0,
+    });
+    check('hvac: cleanroom article, sensible, latent and the sensible heat ratio', near(room.sens * W_TO_BTUH, 11354.585916921542, 1e-9)
+      && near(room.lat * W_TO_BTUH, 19364.362540632097, 1e-9) && near(room.shr, 0.3696280793143329, 1e-9));
+  }
 };

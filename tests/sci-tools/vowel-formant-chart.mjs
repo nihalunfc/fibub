@@ -52,4 +52,12 @@ export default async (check) => {
   check('formant: not a WAV file is explained', /not a WAV/.test(msg));
   const t = L.parseVowelTable('speaker,vowel,F1,F2\nA,i,300,2300\nA,a,750,x\nB,u,320,800');
   check('formant: vowel table by header names', t.rows.length === 2 && t.skipped === 1 && t.rows[1].vowel === 'u' && t.rows[1].speaker === 'B' && t.rows[0].F2 === 2300);
+  // Pinned by the blog article on Sao Tome and Principe Portuguese stressed vowels (Balduino and Freitas
+  // 2025, Isogloss 11(3)): their eight male means, normalised per speaker, and two distances in z-units.
+  const V8 = ['i', 'e', 'E', 'schwa', 'a', 'O', 'o', 'u'];
+  const sF1 = [303, 386, 504, 530, 625, 537, 413, 339], sF2 = [2153, 2016, 1850, 1389, 1350, 919, 952, 937];
+  const sz1 = L.lobanov(sF1, V8.map(() => 'PST')), sz2 = L.lobanov(sF2, V8.map(() => 'PST'));
+  const dz = (a, b) => { const i = V8.indexOf(a), j = V8.indexOf(b); return Math.hypot(sz1[i] - sz1[j], sz2[i] - sz2[j]); };
+  check('formant: Sao Tome Portuguese eight-vowel Lobanov z-scores', near(sz1[0], -1.362151644, 1e-9) && near(sz1[3], 0.677145459, 1e-9) && near(sz1[4], 1.530595788, 1e-9) && near(sz2[3], -0.112499175, 1e-9));
+  check('formant: Sao Tome Portuguese schwa sits closer to [a] and [E] than they are to each other', near(dz('schwa', 'a'), 0.856944947, 1e-9) && near(dz('schwa', 'E'), 0.943247572, 1e-9) && near(dz('E', 'a'), 1.471077175, 1e-9));
 };

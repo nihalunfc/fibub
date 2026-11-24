@@ -23,4 +23,12 @@ export default async (check) => {
   check('energy: lb and inch conversions', near(lbToKg(150), 68.0388555) && near(inToCm(65), 165.1));
   let threw = 0; for (const [p, f] of [[{ sex: 'male', kg: 1, cm: 170, age: 30 }, 1.2], [{ sex: 'male', kg: 70, cm: 300, age: 30 }, 1.2], [{ sex: 'male', kg: 70, cm: 170, age: 0 }, 1.2], [{ sex: 'male', kg: 70, cm: 170, age: 30 }, 0.5]]) { try { results(p, f); } catch { threw++; } }
   check('energy: bad input refused', threw === 4);
+  // Paediatric oncology cohort means (blog: paediatric-oncology-resting-energy-expenditure-harris-benedict-bias).
+  {
+    const boy = { sex: 'male', kg: 45.7, cm: 147.6, age: 12.2 }, girl = { sex: 'female', kg: 45.7, cm: 147.6, age: 12.2 };
+    check('energy: cohort means give Harris-Benedict 1350.9972 (male)', near(harrisBenedict(boy), 1350.9972));
+    check('energy: cohort means give Harris-Benedict 1308.1015 (female)', Math.abs(harrisBenedict(girl) - 1308.10146) < 1e-4);
+    check('energy: 57.6 / 42.4 weighted Harris-Benedict = 1332.81 kcal/day', Math.abs(0.576 * harrisBenedict(boy) + 0.424 * harrisBenedict(girl) - 1332.8085) < 1e-3);
+    check('energy: cohort means give Mifflin-St Jeor 1323.5 and 1157.5', near(mifflin(boy), 1323.5) && near(mifflin(girl), 1157.5));
+  }
 };

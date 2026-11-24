@@ -22,4 +22,12 @@ export default async (check) => {
   // Coax conductor loss: copper 1/3.5 mm air line at 1 GHz, by the direct formula.
   { const Rs = S.surfaceR(1.72e-8, 1e9), a = 0.5e-3, b = 1.75e-3, eta = 376.730313412;
     check('skin: coax conductor attenuation Rs(1/a + 1/b)/(2η ln(b/a))', rel(S.coaxLoss(Rs, a, b, 1), (Rs * (1 / a + 1 / b)) / (2 * eta * Math.log(b / a)), 1e-8)); }
+  // Pinned by the blog article on EMI shielding composites
+  // (src/blog/discoveries/emi-shielding-composite-skin-depth-absorption-loss.md): a weakly conducting, magnetic,
+  // high-permittivity composite at 10 GHz, where the good-conductor formula is 2.35 times too small.
+  check('skin: 2.5 S/m composite at 10 GHz, exact vs good-conductor skin depth and absorption', (() => {
+    const d = S.skinDepth(0.4, 10e9, 1.3, 12), dg = S.skinDepthGood(0.4, 10e9, 1.3);
+    return rel(d, 0.006560237661836504, 1e-9) && rel(dg, 0.002791762383206316, 1e-9)
+      && Math.abs(d / dg - 2.3498) < 1e-3 && rel(S.absorptionDb(0.005, d), 6.620102872640033, 1e-9);
+  })());
 };

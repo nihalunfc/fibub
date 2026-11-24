@@ -36,4 +36,13 @@ export default async (check) => {
     check('waveguide: circular TE11 wall loss matches the numerical integral', rel(W.circLoss(te11, 0.01, 10e9, 1, Rs), 0.017231162953686225, 1e-6));
     const te01 = W.circModes(0.01, 1, 40e9).find((m) => m.name === 'TE01');
     check('waveguide: circular TE01 loss falls with frequency', W.circLoss(te01, 0.01, 40e9, 1, Rs * 2) < W.circLoss(te01, 0.01, 25e9, 1, Rs * Math.sqrt(2.5))); }
+  // A phone's 5G radiation window as a dielectric-filled guide (blog: mmwave-window-te01-cutoff-dielectric-filled-waveguide,
+  // Jo et al. 2026, IEEE Access, doi:10.1109/ACCESS.2026.3737647): 4.0 mm wide, er = 3, height 4.0 mm then 2.8 mm.
+  { const sq = W.rectModes(4e-3, 4e-3, 3, 90e9), sh = W.rectModes(4e-3, 2.8e-3, 3, 90e9);
+    const fc = (M, name) => M.find((m) => m.name === name).fc / 1e9;
+    check('waveguide: a square 4 x 4 mm window (er 3) has TE10 and TE01 degenerate at 21.636 GHz', rel(fc(sq, 'TE10'), 21.635657, 1e-6) && rel(fc(sq, 'TE01'), fc(sq, 'TE10'), 1e-12));
+    check('waveguide: shortening it to 2.8 mm leaves TE10 at 21.636 and lifts TE01 to 30.908 GHz', rel(fc(sh, 'TE10'), 21.635657, 1e-6) && rel(fc(sh, 'TE01'), 30.908081, 1e-6));
+    const ev = W.propagate(sh.find((m) => m.name === 'TE01'), 27.5e9, 3);
+    check('waveguide: that TE01 mode is evanescent at 27.5 GHz and decays at 4.4486 dB/mm', !ev.on && rel((ev.alpha * (20 / Math.LN10)) / 1000, 4.4486225, 1e-6));
+    check('waveguide: filling the 2.8 mm window with er = 6.122 puts TE01 back at 21.64 GHz', rel(fc(W.rectModes(4e-3, 2.8e-3, 3 * (4 / 2.8) ** 2, 90e9), 'TE01'), 21.635657, 1e-6)); }
 };

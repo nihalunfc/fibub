@@ -43,6 +43,15 @@ export default async (check) => {
     const want = inverse('logistic', target(r), 0, 1, 0.5, 0);
     check(`stair: simulated 1-up-${down}-down converges near the ${(target(r) * 100).toFixed(1)} % point (${(sum / 400).toFixed(3)} vs ${want.toFixed(3)})`, Math.abs(sum / 400 - want) < 0.08);
   }
+  // New with the blog article tactile-working-memory-staircase-threshold-79-percent: the three-correct rule
+  // and the worked example on its tool page's simulate mode (120 trials, seed 1).
+  const R3 = { down: 3, stepDown: 1, stepUp: 1, start: -2, min: -9, max: -1, halveAt: [] };
+  check('stair: three correct in a row aim at 0.79370053', near(target(R3), 0.5 ** (1 / 3), 1e-12) && near(target(R3), 0.79370053, 1e-8));
+  const tt = simulateStair(R3, (x) => psi('logistic', x, -5.05, 1.2, 0, 0.02), 120, rng(1));
+  const dd = group(tt.map((v) => ({ x: v.x, correct: v.correct })));
+  const ff = fitPF(dd, 'logistic', 0, 0.02);
+  check('stair: worked example gives a 79.4 % threshold of -3.4025 and a reversal mean of -3.625',
+    Math.abs(inverse('logistic', 0.794, ff.alpha, ff.beta, 0, 0.02) + 3.4025) < 5e-4 && Math.abs(reversalMean(tt, 2, 8).mean + 3.625) < 1e-9 && ff.n === 120 && dd.length === 6);
   const tr = [{ x: 5, reversal: true }, { x: 3, reversal: true }, { x: 4, reversal: false }, { x: 2, reversal: true }, { x: 4, reversal: true }];
   check('stair: reversal mean drops the first and averages the rest', reversalMean(tr, 1, 10).mean === 3 && reversalMean(tr, 0, 2).mean === 3 && near(reversalMean([{ x: 2, reversal: true }, { x: 8, reversal: true }], 0, 2, true).mean, 4));
 };

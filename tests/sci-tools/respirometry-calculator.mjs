@@ -17,4 +17,11 @@ export default async (check) => {
   check('respirometry: closed air chamber VO2 (STPD, wet air)', near(R.closedAir(L.slope / 100, 960, 20, 101.3, 2.64), 0.3197732430));
   check('respirometry: water vapour at 20 °C within 0.1 % of 2.3393 kPa (IAPWS)', Math.abs(R.waterVapourKPa(20) / 2.3393 - 1) < 1e-3 && Math.abs(R.waterVapourKPa(37) / 6.2803 - 1) < 2e-3);
   check('respirometry: 1 mg O2 = 0.7005 mL STPD; kJ/day', near(R.mgO2toMl(1), 0.7004812801) && near(R.kjPerDay(1), 86.4));
+  // Added with /blog/discoveries/drosophila-respiratory-quotient-flow-through-respirometry/: the rebuilt fruit-fly
+  // reading at a flow of 25 mL/min, and the cost of using one flow for both gas differences.
+  const fly = R.openBoth(25, 'in', 0.2095, 0.0004, 0.2094479, 0.00046);
+  check('respirometry: 25 flies at 25 mL/min give VO2 0.00125 mL/min and RQ 1.2000', Math.abs(fly.vo2 - 0.00125014413) < 1e-11 && Math.abs(fly.rq - 1.19995363) < 1e-7 && Math.abs(fly.fre - 25.00024997) < 1e-7);
+  const vo2n = 25 * (0.2095 - 0.2094479), vco2n = 25 * (0.00046 - 0.0004);
+  check('respirometry: one flow for both differences biases RQ to 1.1516 and VO2 by +4.2 %', Math.abs(vco2n / vo2n - 1.151631) < 1e-4 && Math.abs(vo2n / fly.vo2 - 1 - 0.0419) < 2e-3);
+  check('respirometry: joules per mL O2 at RQ 1.20 and 0.94 (Lighton)', near(R.joulesPerMl(1.2, 'lighton'), 22.1968, 1e-4) && near(R.joulesPerMl(0.94, 'lighton'), 20.85416, 1e-4));
 };

@@ -23,4 +23,12 @@ export default async (check) => {
   check('leslie: matrix layout', JSON.stringify(matrix([0, 2], [0.5, 0.1])) === '[[0,2],[0.5,0.1]]');
   let threw = 0; for (const [F, P] of [[[0, 0], [0.5, 0]], [[1, 1], [1.2, 0]], [[0.1, 0], [0.5, 0.9]]]) { try { leslie(F, P); } catch { threw++; } }
   check('leslie: no breeding, survival above 1 and a plus group that dominates are rejected', threw === 3);
+  // New with the fall armyworm article (and the bug it found): 25+ classes with no offspring in the early ones used to
+  // give 0 × Infinity = NaN in the characteristic equation and an error. One breeding day at age 29 with R0 532.8 must
+  // give λ = 532.8^(1/29) = 1.241717 and T = 29.
+  const Fw = new Array(29).fill(0), Pw = new Array(29).fill(1); Fw[28] = 532.8; Pw[28] = 0;
+  const w = leslie(Fw, Pw);
+  check('leslie: 29 daily classes, one breeding day, λ = R0^(1/29) = 1.241717 and T = 29', close(w.lambda, 532.8 ** (1 / 29), 1e-9) && close(w.T, 29, 1e-6) && close(w.R0, 532.8));
+  const F60 = new Array(60).fill(0), P60 = new Array(60).fill(0.98); F60[59] = 5; P60[59] = 0.5;
+  check('leslie: 60 classes with a plus group solve without error, λ^60 (1 − 0.5/λ) = 5 × 0.98^59', (() => { const z = leslie(F60, P60); return close(z.lambda ** 60 * (1 - 0.5 / z.lambda), 5 * 0.98 ** 59, 1e-8); })());
 };

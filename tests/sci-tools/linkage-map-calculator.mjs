@@ -33,4 +33,7 @@ export default async (check) => {
   check('linkage: same answer with the genes listed in another order', perm.genes[perm.order[1]] === 'c' && near(perm.coc, t.coc));
   let err = ''; try { L.threePoint(TP.slice(0, 7).map((r) => ({ alleles: r.slice(0, 3), n: r[3] }))); } catch (e) { err = e.message; }
   check('linkage: 8 classes required', err.includes('8 progeny classes'));
+  // New with the Luciobarbus linkage-map article: the smallest step of a map built from 165 progeny (1/165, 1/330) and a 28.37 cM Kosambi gap.
+  check('linkage: 1 recombinant in 165 is 0.606 cM (Kosambi), in 330 is 0.303 cM', near(L.rfToCm(1 / 165, 'kosambi'), 0.6063, 1e-3) && near(L.rfToCm(1 / 330, 'kosambi'), 0.3030, 1e-3));
+  check('linkage: 28.37 cM gap is RF 0.2567 (Kosambi) and 0.2165 (Haldane); 5 cM is 0.0498', near(L.cmToRf(28.37, 'kosambi'), 0.2567, 2e-4) && near(L.cmToRf(28.37, 'haldane'), 0.2165, 2e-4) && near(L.cmToRf(5, 'kosambi'), 0.0498, 1e-3));
 };

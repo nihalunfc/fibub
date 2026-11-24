@@ -38,4 +38,8 @@ export default async (check) => {
   { const f = fit({ model: 'einstein', gamma: true, weight: 'abs' }); check('heat: Einstein + γT, equal weights', near(f.theta, 241.999545, 1e-6) && near(f.gamma, -2.03833012e-3, 1e-5)); }
   { const l = H.lowT(T, C, 15, 1); check('heat: low-T C/T vs T² line (NumPy lstsq)', l.n === 6 && near(l.gamma, 7.21219547e-4, 1e-6) && near(l.beta, 4.88877767e-5, 1e-6) && near(l.theta, 341.3093691639282, 1e-6)); }
   { const tt = [20, 50, 100, 200, 300], cc = tt.map((t) => H.einsteinC(t, 250, 2)); const f = H.fitHeat(tt, cc, { model: 'einstein', gamma: false, weight: 'rel', n: 2 }); check('heat: exact Einstein data recovers θ', near(f.theta, 250, 1e-7)); }
+  // Blog article of 2026-11-24: ScOs2, YOs2, LuOs2 (Górnicka et al. 2023, Sci. Rep. 13: 16704), n = 3 atoms per formula unit.
+  check('heat: ROs2 beta 0.18, 0.24, 0.29 mJ/(mol K4) give theta 318.8, 289.6, 271.9 K', [[0.18e-3, 318.8], [0.24e-3, 289.6], [0.29e-3, 271.9]].every(([b, t]) => Math.abs(H.thetaFromBeta(b, 3) - t) < 0.05));
+  { const T = [6, 7, 8, 9, 10], C = [115, 150.5, 193.6, 245.3, 306.6].map((c) => c / 1000), l = H.lowT(T, C, 10, 3);
+    check('heat: ScOs2 normal state 6-10 K gives gamma 12.70 mJ/(mol K2), theta 319.0 K', Math.abs(l.gamma * 1000 - 12.70) < 0.005 && Math.abs(l.theta - 319.0) < 0.05); }
 };

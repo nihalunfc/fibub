@@ -18,4 +18,9 @@ export default async (check) => {
   check('basal area: prism sweep BAF 2', near(s.ba, 16.6) && near(s.se, 1.7776388834631178));
   check('basal area: prism stems per ha from in-tree DBHs', near(prism([2, 1], 2, 'metric', [[20, 30], [25]]).stems, 66.34992738675459));
   check('basal area: limiting distance, metric and imperial (2.75 ft/in at BAF 10)', near(limitDistance(30, 2, 'metric'), 10.606601717798211) && near(limitDistance(10, 10, 'imperial'), 27.5, 1e-4));
+  // New with the article on the UWB tree height device (Li et al. 2025, Forests): slant distance to the base along the
+  // base sight line reproduces the paper's H = AB sin α + AB cos α tan β.
+  const ab = 15.07, al = (5.71 * Math.PI) / 180, be = (41.99 * Math.PI) / 180;
+  check('tree height: slant distance to the base = AB sin α + AB cos α tan β (14.9964 m)', near(tangentHeight({ dist: ab, slope: deg(-5.71), top: deg(41.99), base: deg(-5.71) }).H, ab * Math.sin(al) + ab * Math.cos(al) * Math.tan(be)) && near(tangentHeight({ dist: ab, slope: deg(-5.71), top: deg(41.99), base: deg(-5.71) }).H, 14.996389708716114));
+  check('tree height: one degree high on the top reading adds 0.76 m at 5 m but 0.48 m at 15 m', Math.abs(tangentHeight({ dist: 5.22, slope: deg(-16.7), top: deg(70.68), base: deg(-16.7) }).H - 15.7613) < 1e-3 && Math.abs(tangentHeight({ dist: ab, slope: deg(-5.71), top: deg(42.99), base: deg(-5.71) }).H - 15.4777) < 1e-3);
 };

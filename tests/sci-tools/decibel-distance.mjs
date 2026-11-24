@@ -25,4 +25,8 @@ export default async (check) => {
   check('two equal levels add 3.01 dB', near(dbSum([60, 60]), 63.0103, 1e-5));
   check('background subtraction 87.44 − 70 → 87.36 dB', near(dbSubtract(87.43627266045621, 70), 87.35718560668516, 1e-12));
   check('background subtraction: NaN when total ≤ background', Number.isNaN(dbSubtract(60, 60)));
+  // New with the octave-band air attenuation article (Rindel 2024): 2 s of travel (686 m) at 20 °C, 50 %.
+  { const a8 = levelAt(90, 1, 687, 8000, 'plane', air), a63 = levelAt(90, 1, 687, 6300, 'plane', air);
+    check('8 kHz tone over 686 m at 20 °C 50 %: −72.23 dB (105.3 dB/km)', near(a8.absorb, 72.2296, 1e-5) && near(a8.alpha * 1000, 105.291, 1e-5));
+    check('6.3 kHz tone over 686 m at 20 °C 50 %: −46.39 dB (67.6 dB/km)', near(a63.absorb, 46.3907, 1e-5) && near(a63.alpha * 1000, 67.6249, 1e-5)); }
 };

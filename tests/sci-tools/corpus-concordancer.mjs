@@ -47,4 +47,15 @@ export default async (check) => {
   check('kwic: sort by R1 is alphabetical', byR1.join(',') === [...byR1].sort().join(','));
   const byL1 = K.kwic(c, hits, 3, 'L1').map((l) => l.L[0] ?? '');
   check('kwic: sort by L1 is alphabetical', byL1.join(',') === [...byL1].sort().join(','));
+
+  // Blog: src/blog/discoveries/keyness-log-likelihood-thresholds-entrepreneur-twitter-corpus.md. The same 2x2
+  // log-likelihood is the keyness statistic for comparing two corpora. Corpus sizes 31,124 and 27,773 words.
+  {
+    const A = 31124, B = 27773, keyn = (a, b) => K.g2(a, A - a, b, B - b);
+    check(`kwic: keyness G2 for 60 vs 46, 25 vs 11 and 67 vs 0 at corpus sizes 31124 and 27773 (${keyn(60, 46).toFixed(2)}, ${keyn(25, 11).toFixed(2)}, ${keyn(67, 0).toFixed(2)})`,
+      near(keyn(60, 46), 0.6, 5e-3) && near(keyn(25, 11), 4.12, 5e-3) && near(keyn(67, 0), 85.53, 5e-3));
+    const least = (n, f) => { for (let k = 1; k <= 50; k++) if (f(k) >= 6.63) return k; return null; };
+    check('kwic: at those sizes a word absent from the other corpus needs 6 tokens in the larger and 5 in the smaller to pass G2 = 6.63',
+      least(A, (k) => keyn(k, 0)) === 6 && least(B, (k) => keyn(0, k)) === 5 && keyn(5, 0) < 6.63 && keyn(0, 4) < 6.63);
+  }
 };

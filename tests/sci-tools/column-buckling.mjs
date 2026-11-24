@@ -27,4 +27,13 @@ export default async (check) => {
   const Cc = BK.transition(200000, 250), a = BK.criticalStress(Cc - 1e-9, 200000, 250).sigma, b = BK.criticalStress(Cc + 1e-9, 200000, 250).sigma;
   check('buckling: curves meet at σy/2 with the same slope', rel(a, 125, 1e-9) && rel(b, 125, 1e-9));
   check('buckling: stocky column tends to yield', rel(BK.criticalStress(0, 200000, 250).sigma, 250, 1e-12));
+  {
+    // Recycled-composite cantilevers (Gawryluk et al. 2025, doi:10.35784/acs_7308): E = 493 MPa, fy = 13.5 MPa, K = 2.
+    const c1 = BK.column({ kind: 'rect', b: 40, h: 20 }, 150, 2, 493, 13.5);
+    check('buckling: 40 × 20 mm cantilever of 150 mm, E 493 MPa: 1441.69 N, λ 51.96, Euler', rel(c1.PE, 1441.69332, 1e-7) && rel(c1.lambda, 51.9615242, 1e-7) && c1.mode === 'euler');
+    const c2 = BK.column({ kind: 'rect', b: 40, h: 40 }, 150, 2, 493, 13.5), c3 = BK.column({ kind: 'rect', b: 40, h: 60 }, 150, 2, 493, 13.5);
+    check('buckling: the two stocky cases sit just inside the Johnson range at λ 25.98, σ 7.179 MPa', c2.mode === 'johnson' && c3.mode === 'johnson' && rel(c2.lambda, 25.9807621, 1e-7) && rel(c2.sigma, 7.1793076, 1e-7) && rel(c3.sigma, 7.1793076, 1e-7));
+    const mult = (b, h) => BK.eulerLoad(493, BK.sectionProps({ kind: 'rect', b, h }).Imin, 2, 150) / c1.PE;
+    check('buckling: doubling the area gives ×8, ×2 or ×4 depending on which side grows', rel(mult(40, 40), 8, 1e-12) && rel(mult(80, 20), 2, 1e-12) && rel(mult(40 * Math.SQRT2, 20 * Math.SQRT2), 4, 1e-12));
+  }
 };

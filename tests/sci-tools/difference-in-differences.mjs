@@ -29,6 +29,10 @@ export default async (check) => {
   const c = did2x2({ mean: 50, sd: 8, n: 40 }, { mean: 57, sd: 9, n: 38 }, { mean: 48, sd: 7.5, n: 45 }, { mean: 51, sd: 8.2, n: 44 });
   check('did: 2 × 2 from means: 7 − 3 = 4, counterfactual 53', c.did === 4 && c.treatedChange === 7 && c.controlChange === 3 && c.counterfactual === 53);
   check('did: 2 × 2 SE, p and CI match statsmodels HC2 on the individual data', rel(c.se, R.cell.se) < 1e-9 && rel(c.p, R.cell.p) < 1e-9 && rel(c.lo, R.cell.ci[0]) < 1e-9 && c.df === 163);
+  // New with the Kazakh digital-inquiry article: the four cells of Kurebay et al. (2026), Front. Educ. 11: 1821816.
+  { const k = did2x2({ mean: 2.39, sd: 0.61, n: 59 }, { mean: 3.27, sd: 0.58, n: 59 }, { mean: 2.41, sd: 0.63, n: 59 }, { mean: 2.58, sd: 0.66, n: 59 });
+    check('did: 2 x 2 digital inquiry 0.7100, SE 0.16162, t 4.3930 on 232 df, CI 0.3916 to 1.0284',
+      Math.abs(k.did - 0.71) < 1e-12 && Math.abs(k.se - 0.161616) < 5e-6 && Math.abs(k.t - 4.393) < 5e-4 && k.df === 232 && Math.abs(k.lo - 0.3916) < 5e-5 && Math.abs(k.hi - 1.0284) < 5e-5); }
   check('did: means only gives no SE', did2x2({ mean: 1 }, { mean: 2 }, { mean: 1 }, { mean: 1.5 }).se === undefined);
   const t = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
   check('did: no comparison units explained', /comparison units/.test(t(() => didPanel(rows.map((x) => ({ ...x, treated: true })), 2019))));

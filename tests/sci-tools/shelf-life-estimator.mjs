@@ -10,6 +10,14 @@ export default async (check) => {
   check('shelf life: Q10 from Ea at 20 °C', near(q10FromEa(f.Ea, 20), 2.5133446269));
   const two = fitShelf([{ T: 25, t: 180 }, { T: 35, t: 75 }]);
   check('shelf life: two points fit exactly', near(two.q10, 2.4) && two.q10Line.r2 === 1 && near(two.predictArr(35), 75));
+  // Ready-to-eat crayfish, Li et al. (2025), Foods 14(8): 1296, doi:10.3390/foods14081296 (CC BY 4.0): shelf life
+  // 2 days at 25 °C and 1.5 days at 37 °C by total viable count, against its more-than-10-days result at 4 °C.
+  const cray = fitShelf([{ T: 25, t: 2 }, { T: 37, t: 1.5 }]);
+  check('shelf life: crayfish pair gives Q10 1.27 and Ea 18.4 kJ/mol', near(cray.q10, 1.2709123907, 1e-9) && near(cray.Ea, 18431.994701, 1e-9));
+  check('shelf life: crayfish pair predicts about 3.3 days at 4 °C', near(cray.predictQ10(4), 3.3088172768, 1e-9) && near(cray.predictArr(4), 3.5132283934, 1e-9));
+  check('shelf life: Q10 needed for 10 days at 4 °C', near(q10From(10, 4, 2, 25), 2.1520029345, 1e-9) && near(q10Shift(2, 25, 4, 2.1520029345), 10, 1e-9));
+  check('shelf life: crayfish TVB-N Ea gives Q10 2.91 at 4 °C', near(q10FromEa(70736, 4), 2.9125007, 1e-6));
+
   let e = ''; try { fitShelf([{ T: 30, t: 10 }, { T: 30, t: 20 }]); } catch (x) { e = x.message; }
   check('shelf life: one temperature refused', e.includes('two different temperatures'));
   e = ''; try { q10Shift(0, 25, 5, 2); } catch (x) { e = x.message; } check('shelf life: zero shelf life refused', e.includes('more than 0'));

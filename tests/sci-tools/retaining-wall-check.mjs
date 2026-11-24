@@ -27,4 +27,10 @@ export default async (check) => {
   const d = W.retainingWall({ ...base, toe: 0.3, heel: 0.4 });
   check('retwall: resultant outside the base tips over (Python: overturning 0.5425)', d.contact === 0 && d.qToe === Infinity && rel(d.fsOverturning, 0.5425111532044702, 1e-9));
   check('retwall: pressure diagram ends at K γ H', near(a.pressure[40].soil, a.K * 18 * 4, 1e-9) && a.pressure.length === 41);
+  // New with the lab block-wall article (Mazni et al. 2021, E3S 331: 05013): Ka for phi 31.699 deg, thrust with the paper's Ka 0.311 and unit weight 1.47 g/cm3 at H = 40 cm, and the model wall.
+  check('retwall: Rankine Ka at 31.699 deg is 0.31108 and 0.5 Ka gamma H^2 with Ka 0.311, gamma 1.47, H 40 gives 365.74', near(W.rankineKa(31.699), 0.3110826855, 1e-9) && near(0.5 * 0.311 * 1.47 * 40 * 40, 365.736, 1e-9));
+  const m = W.retainingWall({ H: 0.4, tTop: 0.1126, tBot: 0.1126, tb: 0, toe: 0, heel: 0, gc: 21.57, gamma: 14.42, gsat: 19, phi: 31.699, beta: 0, method: 'rankine', delta: 0, q: 0, hw: 0, uplift: false, mu: 0.3865, Df: 0, usePassive: false });
+  check('retwall: 11.26 cm block wall, 40 cm high: sliding 1.0463, overturning 1.1431', rel(m.fsSliding, 1.046325810082033, 1e-9) && rel(m.fsOverturning, 1.1431075635372279, 1e-9));
+  const m2 = W.retainingWall({ H: 0.4, tTop: 0.167, tBot: 0.167, tb: 0, toe: 0, heel: 0, gc: 21.57, gamma: 14.42, gsat: 19, phi: 31.699, beta: 0, method: 'rankine', delta: 0, q: 0, hw: 0, uplift: false, mu: 0.3865, Df: 0, usePassive: false });
+  check('retwall: 16.7 cm wide block wall reaches sliding 1.55 and overturning 2.51', rel(m2.fsSliding, 1.5518331286296583, 1e-9) && rel(m2.fsOverturning, 2.514451479441976, 1e-9));
 };

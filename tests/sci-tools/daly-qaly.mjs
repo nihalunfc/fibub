@@ -20,6 +20,13 @@ export default async (check) => {
   { const plain = arm([{ utility: 0.6, years: 5 }], 0, 10);
     check('daly: without weights, DALY uses 1 − utility; years to the horizon count in full', close(plain.daly, 0.4 * 5 + 5) && close(plain.qaly, 3)); }
   check('daly: quadrants', icer(5, a0, 1, a1).quadrant === 'dominant' && icer(1, a1, 5, a0).quadrant === 'dominated' && icer(5, a1, 1, a0).quadrant === 'less-cost-less-effect' && icer(1, a0, 2, a0).quadrant === 'no-difference' && Number.isNaN(icer(1, a0, 2, a0).perQaly));
+  // Pinned by /blog/discoveries/oxygen-blender-rop-uganda-dalys-averted-icer/: one case of blindness from
+  // retinopathy of prematurity (weight 0.184 for 58 years) and one oxygen blender set over 5 years.
+  { const one = (r) => burden([{ name: 'SVI from ROP', deaths: 0, yearsLost: 0, cases: 1, weight: 0.184, duration: 58 }], r).daly;
+    const set = (p) => burden([{ name: 'SVI from ROP', deaths: 0, yearsLost: 0, cases: 365 * p * 0.621, weight: 0.184, duration: 58 }], 0.03).daly;
+    const avertedDalys = set(0.07) - set(0.035), avertedCases = 365 * 0.621 * (0.07 - 0.035);
+    check('daly: one ROP blindness case is 5.0568 DALYs at 3 % and 10.672 undiscounted', close(one(0.03), 5.05680820955, 1e-11) && close(one(0), 10.672, 1e-10));
+    check('daly: a blender set averts 7.933 cases, 40.12 DALYs, $169.07 per case', close(avertedCases, 7.933275, 1e-11) && close(avertedDalys, 40.1170501486, 1e-11) && close(1341.25 / avertedCases, 169.066369185, 1e-11)); }
   { const p = parseBurden([['Condition', 'Deaths', 'Years lost', 'Cases', 'Weight', 'Years'], ['X', '20', '30', '500', '0.2', '4'], ['Y', '3', '62,5', '12 000', '0.05', '0.5']]);
     check('daly: burden rows with a header, decimal comma and spaced thousands', !p.error && p.rows.length === 2 && p.rows[1].yearsLost === 62.5 && p.rows[1].cases === 12000); }
   check('daly: bad burden rows', parseBurden([['X', '1', '2', '3', '1.5', '4']]).error && parseBurden([['X', '1', '2']]).error && parseBurden([]).error && parseBurden([['X', '-1', '2', '3', '0.5', '4']]).error);

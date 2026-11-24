@@ -19,4 +19,11 @@ export default async (check) => {
   { const r = bem(EXAMPLE_PROP); check('prop: static FM from BEM 0.735, CT 0.0940, CP 0.0313', Math.abs(r.FM - 0.73485) < 1e-4 && Math.abs(r.CT - 0.093987) < 1e-5 && Math.abs(r.CP - 0.031285) < 1e-5 && r.stalled === 14); }
   { const a = bem(EXAMPLE_PROP), b = bem({ ...EXAMPLE_PROP, tipLoss: false }); check('prop: tip loss lowers thrust', b.T > a.T); }
   { const r = bem({ ...EXAMPLE_PROP, V: 10 }); check('prop: CP = 2π CQ and η = J CT / CP', rel(r.CP, 2 * Math.PI * r.CQ, 1e-12) && rel(r.eta, r.J * r.CT / r.CP, 1e-12)); }
+  // From /blog/discoveries/uav-propeller-static-thrust-pitch-speed-formula-overestimate/: the three-blade 16 x 8 inch
+  // propeller fitted to the 7000 rpm thrust measured by Faishal et al. (2025), doi:10.3390/engproc2025084059.
+  { const P16 = { B: 3, D: 0.4064, hubD: 0.05, chordRoot: 0.0199, chordTip: 0.0105, pitch: 0.2032, V: 0, rho: 1.225, foil: EXAMPLE_FOIL, n: 60 };
+    const hi = bem({ ...P16, rpm: 7000 }), lo = bem({ ...P16, rpm: 2000 });
+    check('prop: fitted 16 x 8 three-blade gives 3.39 kgf and 459 W at 7000 rpm, FM 0.741, and the square law at 2000 rpm',
+      Math.abs(hi.T / 9.80665 - 3.390) < 0.005 && Math.abs(hi.P - 459) < 1 && Math.abs(hi.FM - 0.741) < 0.002
+      && Math.abs(lo.T / 9.80665 - 0.277) < 0.002 && Math.abs(hi.T / lo.T - 12.25) < 0.02); }
 };

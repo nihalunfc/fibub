@@ -18,4 +18,15 @@ export default async (check) => {
   check('real gas: below saturation the stable root is vapour-like, above it liquid-like', (() => { const s = RG.psat('pr', co2, 280); return RG.solveTP('pr', co2, 280, s.P * 0.97).Z > 0.5 && RG.solveTP('pr', co2, 280, s.P * 1.03).Z < 0.2; })());
   check('real gas: vdW critical isotherm gives Z close to 3/8 at the critical point', near(RG.solveTP('vdw', co2, co2.Tc, co2.Pc).Z, 0.375, 1e-3));
   check('real gas: cubic roots of (x-1)(x-2)(x-3)', RG.cubicRoots(-6, 11, -6).every((r, i) => Math.abs(r - (i + 1)) < 1e-12));
+  // Pinned by the blog article on hydrogen tanks (src/blog/discoveries/hydrogen-tank-equation-of-state-pressure-error.md).
+  const h2 = RG.GASES.find((g) => g.id === 'h2');
+  check('real gas: hydrogen at 288.15 K and 70 MPa, Z from the five equations', (() => {
+    const want = [1, 1.6789, 1.5049, 1.4842, 1.3959];
+    return RG.EOS_LIST.every((e, i) => Math.abs(RG.solveTP(e, h2, 288.15, 70e6).Z - want[i]) < 5e-5);
+  })());
+  check('real gas: 5 kg of hydrogen in a 128 litre tank at 288.15 K, pressure from each equation', (() => {
+    const want = [46.42, 86.29, 69.78, 68.30, 62.45]; // MPa
+    const rows = RG.containerPressures(h2, 288.15, 5000 / h2.M, 0.128);
+    return rows.every((r, i) => Math.abs(r.P / 1e6 - want[i]) < 0.005);
+  })());
 };

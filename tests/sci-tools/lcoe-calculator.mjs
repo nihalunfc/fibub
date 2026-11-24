@@ -23,4 +23,12 @@ export default async (check) => {
   { const b = tornado(EXAMPLES.solar.p).find((x) => x.key === 'capex'); const base = lcoe(EXAMPLES.solar.p).lcoe;
     check('lcoe: capital cost bar brackets the base value', b.low < base && b.high > base && rel(b.high - base, base - b.low, 1e-9)); }
   { const b = tornado({ ...EXAMPLES.solar.p, cf: 0.9 }).find((x) => x.key === 'cf'); check('lcoe: capacity factor capped at 100 %', b.highIn === 1); }
+  {
+    // Beibu Gulf wave revetment article (Wei et al. 2025, doi:10.3389/fenrg.2025.1633706): CNY 1.71 bn over 75 MW,
+    // O&M 3.5 % a year, 30 years, 274 GWh a year (capacity factor 274000/(75 x 8760)).
+    const p = { mw: 75, capex: 1.71e9 / 75000, fom: (1.71e9 * 0.035) / 75000, vom: 0, fuelPrice: 0, heatRate: 0, cf: 274000 / (75 * 8760), degr: 0, rate: 0.06, life: 30, esc: 0 };
+    check('lcoe: wave revetment 671.8 per MWh at 6 %, 426.5 undiscounted', rel(lcoe(p).lcoe, 671.78, 1e-4) && rel(lcoe({ ...p, rate: 0 }).lcoe, 426.50, 1e-4));
+    check('lcoe: wave revetment splits into capital 453.4 and O&M 218.4', rel(lcoe(p).parts.capex, 453.39, 1e-3) && rel(lcoe(p).parts.fom, 218.39, 1e-3));
+    check('lcoe: the capacity factor is the widest tornado bar for it', tornado(p, 0.2)[0].key === 'cf');
+  }
 };

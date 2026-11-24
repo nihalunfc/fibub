@@ -53,6 +53,7 @@ import Downloads from '../../components/Downloads.astro';
   import { onSky, getSky } from '../../lib/astro/state';
   import { localDate, localTime, zoned, sexa, parseAngle, tzLabel } from '../../lib/astro/place';
   import { wireDownloads, type Section } from '../../lib/report';
+  import { ttMinusUtc } from '../../lib/sci/ttscale';
 
   const root = document.querySelector<HTMLElement>('.at')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -111,7 +112,9 @@ import Downloads from '../../components/Downloads.astro';
     if (!d || isNaN(d.getTime())) { facts = []; return; }
     const { place } = getSky();
     const t = A.MakeTime(d);
-    const jd = t.ut + 2451545, jdtt = t.tt + 2451545, dT = (t.tt - t.ut) * 86400;
+    // TT comes from the leap-second table (TT = TAI + 32.184 s), not from a predicted-dT polynomial,
+    // which is several seconds out for recent dates and would carry straight into JD(TT) and BJD.
+    const jd = t.ut + 2451545, dT = ttMinusUtc(d), jdtt = jd + dT / 86400;
     const gmst = A.SiderealTime(d), l = lst(d, place.lon);
     const start = Date.UTC(d.getUTCFullYear(), 0, 1);
     const doy = Math.floor((d.getTime() - start) / 864e5) + 1;
@@ -121,12 +124,12 @@ import Downloads from '../../components/Downloads.astro';
       ['Julian Date (UT)', jd.toFixed(5)],
       ['Modified Julian Date', (jd - 2400000.5).toFixed(5)],
       ['Julian Date (TT)', jdtt.toFixed(5), 'Terrestrial Time, used by ephemerides'],
-      ['ΔT (TT − UT)', `${dT.toFixed(1)} s`],
+      ['TT − UTC', `${dT.toFixed(3)} s`, 'leap seconds plus the fixed 32.184 s between TAI and TT'],
       ['Greenwich sidereal time', sexa(gmst, 'h', 0)],
       ['Local sidereal time', sexa(l, 'h', 0), `RA on your meridian: ${(l * 15).toFixed(2)}°`],
       ['Day of the year', `${doy}`],
       ['Unix time', `${Math.floor(d.getTime() / 1000)}`],
-      ['J2000 epoch years', `J${(2000 + t.tt / 365.25).toFixed(4)}`],
+      ['J2000 epoch years', `J${(2000 + (jdtt - 2451545) / 365.25).toFixed(4)}`],
     ];
     dl(q('.at-out'), rows);
     facts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
@@ -141,7 +144,7 @@ import Downloads from '../../components/Downloads.astro';
     const LT = 499.004783836; // light seconds per au
     const bary = A.BaryState(A.Body.Earth, t), helio = A.HelioVector(A.Body.Earth, t);
     const db = (bary.x * n.x + bary.y * n.y + bary.z * n.z) * LT, dh = (helio.x * n.x + helio.y * n.y + helio.z * n.z) * LT;
-    const jdtt = t.tt + 2451545, jdut = t.ut + 2451545;
+    const jdut = t.ut + 2451545, jdtt = jdut + ttMinusUtc(d) / 86400;
     const now = toJNow(ra * 15, dec, d);
     const rows: [string, string, string?][] = [
       ['BJD (TDB)', (jdtt + db / 86400).toFixed(6), `${db >= 0 ? '+' : ''}${db.toFixed(2)} s light-time correction`],

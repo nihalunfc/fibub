@@ -27,4 +27,18 @@ export default async (check) => {
   const s3 = E.indexSpots(4.08 / Math.sqrt(3), 4.08 / Math.sqrt(8), 90, 'fcc', 4.08, 0.01, 1);
   check('ediff: FCC 111 and 220 at 90° give the [112] zone family', s3.length >= 1 && s3[0].zone.map(Math.abs).sort().join() === '1,1,2');
   check('ediff: impossible spot angle finds nothing', E.indexSpots(2.0, 2.0, 13, 'bcc', 2.87, 0.01, 1).length === 0);
+  // Blog: zinc-chromite-spinel-cell-from-lattice-fringe-saed. The SAED rings of Thakur et al. (2026),
+  // Front. Mater. 13: 1924267 (CC BY 4.0), for ZnCr2O4 spinel: a from the published (422) lattice fringe of 0.17 nm,
+  // and what the reported ring list alone can settle.
+  {
+    const a = 0.17 * 10 * Math.sqrt(24); // (422): N = 24
+    const dOf = (N) => a / Math.sqrt(N);
+    const reported = [3, 8, 11, 16, 24, 32, 40].map(dOf);          // 111 220 311 400 422 440 620
+    const withWeak = [3, 8, 11, 12, 16, 24, 27, 32, 40].map(dOf);  // plus (222) and (511)
+    const r1 = E.indexRings(reported, 0.02), r2 = E.indexRings(withWeak, 0.02);
+    check('ediff: ZnCr₂O₄ (422) fringe of 0.17 nm gives a = 8.3283 Å', a.toFixed(4) === '8.3283');
+    check('ediff: the 7 reported rings fit diamond cubic first (a = 8.3283 Å, 3 lines missing)', r1[0].lattice === 'diamond' && r1[0].a.toFixed(4) === '8.3283' && r1[0].unindexed === 0 && r1[0].missing.join() === '19,27,35');
+    check('ediff: adding the (222) and (511) rings flips the ranking to face-centred cubic, same a', r2[0].lattice === 'fcc' && r2[0].a.toFixed(4) === '8.3283' && r2[0].unindexed === 0 && r2.find((f) => f.lattice === 'diamond').a > 19);
+    check('ediff: the paper’s highest quoted peak is the (642) line of that cell', Math.round((a / 1.1131) ** 2) === 56);
+  }
 };

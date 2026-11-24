@@ -38,4 +38,17 @@ export default async (check) => {
   check('hyp: chi-square and normal tails', near(H.chi2Sf(3.841458820694124, 1), 0.05, 1e-9) && near(H.normSf(5), 2.866515718791939e-7, 1e-9));
   let threw = 0; for (const f of [() => H.tOne([1]), () => H.shapiroWilk([1, 1, 1]), () => H.chiIndep([[1, 2]]), () => H.mannWhitney([1, 2], [2, 3], 'two-sided', 'exact')]) { try { f(); } catch { threw++; } }
   check('hyp: bad input throws plain errors', threw === 4);
+  // Pinned by the blog article on Chinese learners' English corner vowels (Zhu 2025, Front. Psychol.
+  // 16: 1598904): its largest comparison, the women's /u/ F2, rebuilt from the published mean, SD and
+  // count, and the same effect size at speaker level instead of token level.
+  const moments = (n, m, sd) => {
+    const out = [];
+    if (n % 2 === 0) { const c = sd * Math.sqrt((n - 1) / n); for (let i = 0; i < n / 2; i++) { out.push(m + c); out.push(m - c); } }
+    else { const k = (n - 1) / 2, c = sd * Math.sqrt((n - 1) / (2 * k)); for (let i = 0; i < k; i++) { out.push(m + c); out.push(m - c); } out.push(m); }
+    return out;
+  };
+  const vt = H.tTwo(moments(423, 1832, 395), moments(3125, 1520, 349), true);
+  const vs = H.tTwo(moments(6, 1832, 395), moments(44, 1520, 349), true);
+  check('hyp: corner vowel /u/ F2 by tokens (t 15.4495, d 0.8794)', near(vt.t, 15.449525, 1e-5) && Math.round(vt.df) === 515 && near(vt.d, 0.879401, 1e-5) && vt.p < 1e-40);
+  check('hyp: the same effect size by speakers is not significant (p 0.11457)', near(vs.p, 0.114572, 1e-5) && near(vs.d, vt.d, 0.02));
 };

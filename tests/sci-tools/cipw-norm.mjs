@@ -33,6 +33,13 @@ export default async (check) => {
   { const c = COMPS.basalt, a = adjustIron({ ...c }, { mode: 'lemaitre', rock: 'volcanic' }), r = 0.93 - 0.0042 * c.SiO2 - 0.022 * (c.Na2O + c.K2O);
     check('cipw: Le Maitre volcanic FeO/(FeO + Fe2O3) by weight', near(a.FeO / (a.FeO + a.Fe2O3), r, 1e-12)); }
   { const c = cipw({ SiO2: 50, Al2O3: 15, FeO: 10, MgO: 10, CaO: 10, Na2O: 3, K2O: 1, TiO2: 1 }, { mode: 'none' }, false); check('cipw: closure off keeps the sum as given', near(c.sumIn, 100, 1e-12) && near(c.total, 100, 1e-9)); }
+  // Rapakivi Phase II average analysis (Solano-Acosta et al. 2026, doi:10.3176/earth.2026.06, CC BY; MnO assumed
+  // 0.05 wt%): normative magnetite is capped by ferric iron, and raising Fe3+# to 0.468 with the same total iron
+  // trades hypersthene for magnetite and frees silica for quartz (blog: rapakivi-granite-cipw-norm-phase-averages).
+  { const II = { SiO2: 69.93, TiO2: 0.40, Al2O3: 13.42, Fe2O3: 1.05, FeO: 2.67, MnO: 0.05, MgO: 0.65, CaO: 2.02, Na2O: 2.59, K2O: 6.35, P2O5: 0.11 };
+    const a = cipw(II), b = cipw(II, { mode: 'ratio', ratio: 0.468 / 0.532 });
+    check('cipw: rapakivi Phase II average gives Q 24.85, Mt 1.53, DI 84.74, An 22.2', near(a.wt.Q, 24.8476, 5e-4) && near(a.wt.Mt, 1.5339, 5e-4) && near(a.DI, 84.744, 5e-3) && near(a.anPlag, 22.153, 5e-3));
+    check('cipw: at Fe3+# 0.468 the same analysis gives Q 25.65 and Mt 2.59', near(b.wt.Q, 25.6534, 5e-4) && near(b.wt.Mt, 2.5911, 5e-4) && near(b.wt.Hy, 2.0445, 5e-4)); }
   { const c = cipw({ SiO2: 25, Al2O3: 7.5, FeO: 5, MgO: 5, CaO: 5, Na2O: 1.5, K2O: 0.5, TiO2: 0.5 }), d = cipw({ SiO2: 50, Al2O3: 15, FeO: 10, MgO: 10, CaO: 10, Na2O: 3, K2O: 1, TiO2: 1 });
     check('cipw: closure makes a halved analysis give the same norm', MINERALS.every((m) => near(c.wt[m], d.wt[m], 1e-9))); }
 };

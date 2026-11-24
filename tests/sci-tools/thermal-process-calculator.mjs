@@ -14,6 +14,14 @@ export default async (check) => {
   check('thermal: F0 by trapezoid matches numpy', near(p.total, 27.356058148) && near(p.F[6], 8.6699903) && near(p.F[9], 24.52095836) && p.peak === 121.5 && p.peakAt === 35);
   check('thermal: other Tref and z', near(fProfile(tt.map((t, i) => ({ t, T: TT[i] })), 120, 8).total, 36.409944926));
   check('thermal: constant temperature at Tref gives F = time', near(fProfile([{ t: 0, T: 121.1 }, { t: 7, T: 121.1 }], 121.1, 10).total, 7));
+  // Published Bigelow fit: Salmonella Typhimurium in alheira sausage batter, Coelho-Fernandes, Cadavez and
+  // Gonzales-Barron (2022), Biology and Life Sciences Forum 18(1): 44, doi:10.3390/foods2022-13001 (CC BY 4.0).
+  // The paper reports z = 5.016 degrees C, R2 = 0.947, log10 D at 50 degrees C = 2.302 and D about 0.021 min at 70.
+  const za = zValue([[54, 26.52], [57, 7.936], [60, 3.663], [63, 0.348]].map(([T, D]) => ({ T, D })));
+  check('thermal: alheira Salmonella z-value matches the paper', near(za.z, 5.0152567723, 1e-9) && near(za.fit.r2, 0.9468997559, 1e-9));
+  check('thermal: alheira D at 50 and 70 degrees C', near(za.dAt(50), 200.4362703434, 1e-9) && near(za.dAt(70), 0.0206131613, 1e-9));
+  check('thermal: alheira F for 7 log reductions at 70 degrees C', near(fNeeded(za.dAt(70), 7, 0), 0.1442921289, 1e-9));
+
   let e = ''; try { fProfile([{ t: 0, T: 100 }, { t: 0, T: 110 }], 121.1, 10); } catch (x) { e = x.message; } check('thermal: times must increase', e.includes('Times must increase'));
   e = ''; try { dValue([{ t: 0, N: 100 }, { t: 2, N: 0 }]); } catch (x) { e = x.message; } check('thermal: zero count refused', e.includes('more than 0'));
   e = ''; try { dValue([{ t: 0, N: 100 }, { t: 2, N: 200 }]); } catch (x) { e = x.message; } check('thermal: rising counts refused', e.includes('do not fall'));

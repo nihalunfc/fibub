@@ -63,4 +63,28 @@ export default async (check) => {
     && err('ID,R1,IC50 (nM)\na,H,ten\nb,F,5', 'auto', 'not a number') && err('ID,R1,IC50 (nM)\na,H,0\nb,F,5', 'auto', 'above 0') && err('ID,R1,R2,IC50 (nM)\na,H,,10\nb,F,Me,5', 'auto', 'R2 is empty')
     && err('ID,IC50 (nM),HA\na,10,20\nb,5,21', 'auto', 'No R-group') && err('ID,R1,pIC50\na,H,700\nb,F,7', 'auto', 'outside the usual p range'));
   check('sar: picked unit overrides the header', near(S('ID,R1,IC50\na,H,10\nb,F,5', 'uM').cpds[0].p, 5));
+  // Blog article quinolinone-egfr-her2-substituent-matched-pairs: Al-Wahaibi et al. (2025), Front. Chem. 13: 1638489
+  // (CC BY 4.0), MCF-7 IC50 column. The scaffold swap is inside the assay noise; the substituent carries the potency.
+  { const q = S(`ID,R1 scaffold,R2 substituent,IC50 (nM)
+3a,sulfonohydrazide,N1-Me,89
+3b,sulfonohydrazide,6-OMe,52
+3c,sulfonohydrazide,6-Me,48
+3d,sulfonohydrazide,H,37
+3e,sulfonohydrazide,N1-Et,61
+3f,sulfonohydrazide,6-Cl,43
+3g,sulfonohydrazide,7-Me,90
+3h,sulfonohydrazide,8-Me,>100
+5a,dinitrophenylhydrazone,H,34
+5b,dinitrophenylhydrazone,6-Me,50
+5c,dinitrophenylhydrazone,6-OMe,62
+5d,dinitrophenylhydrazone,8-Me,67
+5e,dinitrophenylhydrazone,N1-Me,74
+5f,dinitrophenylhydrazone,7-Me,83
+5g,dinitrophenylhydrazone,6-Cl,78`);
+    const qc = combos(q), qp = matchedPairs(q, qc), qt = transforms(qp);
+    check('sar: quinolinone series: 15 compounds, 48 matched pairs, 28 changes, 3h censored at pIC50 7', q.cpds.length === 15 && qp.length === 48 && qt.length === 28 && q.cpds[7].qual === '<' && near(q.cpds[7].p, 7));
+    const sw = qt.find((t) => t.pos === 0);
+    check('sar: scaffold swap averages −0.0334496 ± 0.1227470 over 6 pairs', sw.n === 6 && near(sw.mean, -0.033449624822141942) && near(sw.sd, 0.12274702429860936));
+    const gq = groupScores(q, 1, qp, qc);
+    check('sar: substituent H scores +0.2599527 and 7-Me −0.1913373', gq[0].group === 'H' && near(gq[0].score, 0.25995270436350904) && gq.at(-1).group === '7-Me' && near(gq.at(-1).score, -0.19133727271507764)); }
 };

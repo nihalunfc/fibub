@@ -20,4 +20,6 @@ export default async (check) => {
   check('pipe: length for a note round-trips', near(pipeResonance(1, 'open', lengthFor(523.25, 'open', 0.008, 'flanged', c), 0.008, 'flanged', c).f, 523.25, 1e-12));
   check('pitch: E4 329.628 Hz, Bb2 116.541, C#3 138.591, F♯5', near(parsePitch('E4'), 329.62755691287, 1e-13) && near(parsePitch('Bb2'), 116.540940379522, 1e-13) && near(parsePitch('C#3'), 138.591315488436, 1e-13) && near(parsePitch('F♯5'), 739.98884542, 1e-9));
   check('pitch: plain Hz, A4 = 432, rubbish', parsePitch('196 Hz') === 196 && parsePitch('A4', 432) === 432 && Number.isNaN(parsePitch('H9')) && Number.isNaN(parsePitch('')));
+  // Blog: flue-pipe-end-correction-levine-schwinger-vs-empirical-ka (Coyle et al. 2025: 0.48 m round, 0.36 m square pipe, c = 343).
+  check('pipe: square flue tube 0.36 m, a = √(1e-4/π), c = 343: f1 = 467.404 Hz; round 0.48 m, a = 10 mm: L′ = 492.266 mm', near(pipeResonance(1, 'open', 0.36, Math.sqrt(1e-4 / Math.PI), 'unflanged', 343).f, 467.40389369404124, 1e-12) && near(effLength('open', 0.48, 0.01, 'unflanged'), 0.492266, 1e-12));
 };

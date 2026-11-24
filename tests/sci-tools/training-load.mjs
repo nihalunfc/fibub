@@ -23,4 +23,14 @@ export default async (check) => {
   const err = (t) => { try { T.parseSessions(t); return ''; } catch (e) { return e.message; } };
   check('trainload: bad rows', err('2026-13-01,40,3').includes('not a date') && err('2026-09-01,40,12').includes('RPE') && err('2026-09-01,40,3,,30,20').includes('more than the session') && err('date,rpe\n2026-09-01,3').includes('minutes'));
   check('trainload: no rest-day SD, monotony blank', Number.isNaN(T.weeks(T.parseSessions('2026-09-07,10,0'), 'srpe', { rest: 50, max: 190, female: false })[0].monotony));
+  // The reconstructed MMA camp in the monotony article (checked against Kirk et al. 2021, PLoS ONE 16: e0251266).
+  { const hr = { rest: 50, max: 190, female: false }, week = [[90, 8], [0, 0], [50, 5], [0, 0], [75, 6], [40, 3], [0, 0]];
+    const d0 = T.dayNum('2026-01-05'), rows = [];
+    [1, 1.08, 0.95, 1.12, 1, 1.15, 0.92, 0.55].forEach((f, w) => week.forEach(([m, r], d) => { if (m > 0) rows.push(`${T.dayStr(d0 + w * 7 + d)},${Math.round(m * f)},${r}`); }));
+    const ss = T.parseSessions(`date,minutes,rpe\n${rows.join('\n')}\n`), ww = T.weeks(ss, 'srpe', hr), dd = T.daily(ss, 'srpe', hr), L = dd[dd.length - 1];
+    check('trainload: MMA camp weekly load, monotony and strain',
+      ww.length === 8 && ww[0].total === 1540 && ww[7].total === 852 && near(ww[0].monotony, 0.7954117, 1e-6) && near(ww[0].strain, 1224.9328, 1e-6));
+    check('trainload: MMA camp bout-week ACWR and EWMA ratio', near(L.acwr, 0.6114101, 1e-6) && near(L.ewmaRatio, 0.6673585, 1e-6));
+    const monoEqual = (k) => { const rs = []; for (let i = 0; i < k; i++) rs.push(`${T.dayStr(d0 + i)},${1540 / k / 5},5`); return T.weeks(T.parseSessions(`date,minutes,rpe\n${rs.join('\n')}\n`), 'srpe', hr)[0].monotony; };
+    check('trainload: monotony of k equal training days', near(monoEqual(2), 0.5855400, 1e-6) && near(monoEqual(3), 0.8017837, 1e-6) && near(monoEqual(4), 1.0690450, 1e-6)); }
 };

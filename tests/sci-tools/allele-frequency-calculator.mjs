@@ -2,7 +2,7 @@
 // (every heterozygote count's probability given the allele counts); chi-square from scipy.stats.chi2;
 // Weir & Cockerham from scikit-allel 1.3.13 weir_cockerham_fst (its a, b, c are summed over both alleles, so
 // twice ours); Nei's F-statistics from an independent numpy calculation.
-import { hweExact, popStats, weirCockerham, neiF, pooled } from '../../src/lib/sci/hwefst.ts';
+import { hweExact, popStats, weirCockerham, neiF, pooled, hweMulti } from '../../src/lib/sci/hwefst.ts';
 
 export default async (check) => {
   const rel = (name, got, want, tol = 1e-9) => check(`${name}: got ${got}, want ${want}`, Math.abs(got - want) <= tol * Math.max(1e-300, Math.abs(want)));
@@ -25,4 +25,20 @@ export default async (check) => {
   rel('Nei FIS', nei.Fis, 0.21909532930602615); rel('Nei FST', nei.Fst, 0.09406006674082315); rel('Nei FIT', nei.Fit, 0.29254727474972186);
   check('Nei (1 − FIT) = (1 − FIS)(1 − FST)', Math.abs((1 - nei.Fit) - (1 - nei.Fis) * (1 - nei.Fst)) < 1e-12);
   const P = pooled(pops); check('pooled counts', P.AA === 46 && P.AB === 53 && P.BB === 51);
+  // Three alleles at ovine KRTAP36-1 (blog: ovine-krtap36-1-tan-lambs-allele-frequencies-hardy-weinberg).
+  {
+    const k = hweMulti(['A', 'B', 'C'], new Map([['A/A', 5], ['A/B', 17], ['A/C', 34], ['B/B', 22], ['B/C', 82], ['C/C', 86]]));
+    rel('KRTAP36-1 allele A frequency', k.p[0], 61 / 492, 1e-12);
+    rel('KRTAP36-1 allele B frequency', k.p[1], 143 / 492, 1e-12);
+    rel('KRTAP36-1 allele C frequency', k.p[2], 288 / 492, 1e-12);
+    rel('KRTAP36-1 three-allele chi-square', k.chi2, 0.64514317, 1e-6);
+    check('KRTAP36-1 degrees of freedom = 3', k.df === 3);
+    rel('KRTAP36-1 chi-square p (published 0.886)', k.pChi, 0.886024, 1e-4);
+    rel('KRTAP36-1 observed heterozygosity', k.Ho, 133 / 246, 1e-12);
+    rel('KRTAP36-1 expected heterozygosity', k.He, 0.55749719, 1e-7);
+    rel('KRTAP36-1 smallest expected count', k.minExpected, 3.78150, 1e-4);
+    const c = popStats({ name: 'C vs rest', AA: 86, AB: 116, BB: 44 });
+    rel('KRTAP36-1 C-vs-rest FIS', c.Fis, 0.02859477, 1e-7);
+    rel('KRTAP36-1 C-vs-rest exact p', c.pExact, 0.693578, 1e-5);
+  }
 };

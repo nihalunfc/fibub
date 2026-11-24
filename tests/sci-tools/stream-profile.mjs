@@ -25,6 +25,16 @@ export default async (check) => {
   check('stream profile: segmented fits and BIC breaks equal brute-force numpy', D.segs.every((s) => { const r = S.segments(s.c, s.z); return JSON.stringify(r.breaks) === JSON.stringify(s.breaks) && r.cands.every((c, i) => Math.abs(c.sse - s.sse[i]) <= 1e-8 * s.sse[i]); }));
   { const p = S.synthetic(400, 20000, 1, 1.8, 50, 0.45, 300), c = S.chi(p, 0.45), f = S.lsq(c, p.z);
     check('stream profile: made-up steady state: z against χ is a line of slope ks through 0', Math.abs(f.slope - 50) < 1e-9 && Math.abs(f.icpt) < 1e-6 && f.r2 > 1 - 1e-12); }
+  // Blog: channel-steepness-ksn-concavity-ulsan-fault-zone (Lee et al. 2024, Earth Surf. Dynam. 12: 1091).
+  { const N = 241, p = S.synthetic(N, 20000, 3.27, 1.67, 24, 0.45, 485), c = S.chi(p, 0.45, 1), f = S.lsq(c, p.z);
+    check('stream profile: a ksn 24 channel at θref 0.45 fits back as ksn 24 with a straight χ plot',
+      Math.abs(f.slope - 24) < 1e-9 && f.r2 > 1 - 1e-12 && S.bestTheta(p, 1).theta === 0.45);
+    const kb = c[N - 1] * 0.45, z = c.map((v) => (v <= kb ? 24 * v : 24 * kb + 72 * (v - kb)));
+    let s = 1091; const rnd = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
+    const zn = z.map((v) => +(v + 2 * (Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd()))).toFixed(2));
+    const seg = S.segments(c, zn, 12, 2);
+    check('stream profile: a trebled-steepness knickpoint is found once, with ksn 24 below and 72 above',
+      seg.breaks.length === 1 && Math.abs(c[seg.breaks[0]] - kb) < 0.3 && Math.abs(seg.fits[0].slope - 24) < 0.2 && Math.abs(seg.fits[1].slope - 72) < 0.2); }
   { const g = S.parseAsciiGrid('ncols 3\nnrows 2\nxllcorner 100\nyllcorner 200\ncellsize 30\nNODATA_value -9999\n1 2 3\n4 -9999 6\n');
     check('stream profile: ASCII grid read with no-data', g.w === 3 && g.h === 2 && g.cell === 30 && g.x0 === 100 && g.z[3] === 4 && Number.isNaN(g.z[4]) && g.z[5] === 6);
     let e1 = '', e2 = ''; try { S.parseAsciiGrid('hello'); } catch (e) { e1 = e.message; } try { S.parseAsciiGrid('ncols 3\nnrows 2\ncellsize 1\n1 2 3'); } catch (e) { e2 = e.message; }

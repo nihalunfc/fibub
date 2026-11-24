@@ -37,5 +37,16 @@ export default async (check) => {
   check('WF same seed, same run', a.lines.every((l, i) => l.every((v, j) => v === b.lines[i][j])) && a.lines[0].length === 51);
   const c = simulate({ N: 100, p0: 0.3, s: 0.01, h: 0.5, gens: 50, reps: 30, seed: 43 });
   check('WF other seed, other run', c.lines.some((l, i) => l.some((v, j) => v !== a.lines[i][j])));
+  // Pinned by /blog/discoveries/laboratory-schistosome-effective-population-size-drift/: mean heterozygosity
+  // across 2000 neutral sites after 400 generations, against H_t/H_0 = (1 - 1/2Ne)^t, and the Ne that leaves 38 %.
+  { const hetLeft = (Ne) => { const r = simulate({ N: Ne, p0: 0.5, s: 0, h: 0.5, gens: 400, reps: 2000, seed: 7, keep: 1 });
+      let h = 0; r.final.forEach((p) => { h += 2 * p * (1 - p); }); return h / r.reps / 0.5; };
+    const exp = (Ne, t) => (1 - 1 / (2 * Ne)) ** t;
+    const h100 = hetLeft(100), h200 = hetLeft(200);
+    near('WF heterozygosity left at Ne 100 after 400 generations', h100, 0.13755, 1e-4);
+    near('WF heterozygosity left at Ne 200 after 400 generations', h200, 0.35706, 1e-4);
+    check('WF simulated heterozygosity tracks (1 - 1/2Ne)^t within 0.02', Math.abs(h100 - exp(100, 400)) < 0.02 && Math.abs(h200 - exp(200, 400)) < 0.02);
+    let lo = 1.5, hi = 1e6; for (let i = 0; i < 300; i++) { const m = Math.sqrt(lo * hi); exp(m, 400) < 0.38 ? (lo = m) : (hi = m); }
+    near('WF the Ne that leaves 38 % of diversity after 400 generations is 207', Math.sqrt(lo * hi), 207.0, 0.5); }
   const w = wilson(50, 100); near('WF Wilson interval low', w[0], 0.4038, 1e-4);
 };

@@ -22,4 +22,19 @@ export default async (check) => {
   { const t = [0, 1, 2, 3, 4], f = W.fitD(t, t.map((x) => 6 * x), 3); check('walk: exact straight line gives D and R² = 1', near(f.D, 1, 1e-12) && near(f.r2, 1, 1e-12)); }
   { const m2 = W.trackMSD([{ id: 'a', t: [0, 1, 3, 4], r: [[0], [1], [3], [4]] }], 3); check('walk: missing frames are matched by time', m2.lag.length === 3 && m2.n[0] === 2 && m2.msd[0] === 1 && m2.msd[2] === 9); }
   check('walk: bad rows give messages', !!W.parseTracks([['a', '0', '1', '2'], ['a', '1', '1', 'x']], 2, true).error && !!W.parseTracks([['a', '0', '1', 'x']], 2, true).error && !!W.parseTracks([['a', '0', '1', '2'], ['a', '0', '1', '2']], 2, true).error && !!W.parseTracks([['t', 'x'], ['0', '1'], ['1', 'q']], 1, false).error);
+  // New with the blog article short-track-msd-anomalous-exponent-bias-correction (Appl. Sci. 15, 8000, 2025):
+  // the lag geometry of a 4-lag log-log fit, and the short-track bias of the exponent for pure Brownian motion.
+  {
+    const logs = [1, 2, 3, 4].map(Math.log), ml = logs.reduce((a, b) => a + b, 0) / 4;
+    check('walk: lag geometry for τ = 1..4 gives Σ(log τ − mean)² = 1.0842075 (paper quotes 1.08434)', near(logs.reduce((s2, x) => s2 + (x - ml) ** 2, 0), 1.0842074932562769, 1e-12));
+    const r = W.rng(4242), SD = Math.sqrt(2 * 0.5 * 1), a = [];
+    for (let k = 0; k < 2000; k++) {
+      const t = [], q = []; let x = 0, y = 0;
+      for (let f = 0; f <= 10; f++) { if (f) { x += SD * r.n(); y += SD * r.n(); } t.push(f); q.push([x, y]); }
+      const mm = W.trackMSD([{ id: '1', t, r: q }], 4);
+      a.push(W.alphaFit(mm.lag, mm.msd).alpha);
+    }
+    const mean = a.reduce((x, y) => x + y, 0) / a.length, v = a.reduce((s2, x) => s2 + (x - mean) ** 2, 0) / (a.length - 1);
+    check('walk: 2000 ten-step Brownian tracks read α̂ = 0.9208 on average (true 1) with Var[α̂] × T = 1.2025', near(mean, 0.9207721853761648, 1e-9) && near(v * 10, 1.2025320220742508, 1e-9));
+  }
 };

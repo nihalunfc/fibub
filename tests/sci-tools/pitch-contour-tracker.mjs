@@ -34,6 +34,12 @@ export default async (check) => {
   check('pitch: semitones', near(P.semitones(200, 100), 12, 1e-12) && near(P.semitones(100 * 2 ** (1 / 12), 100), 1, 1e-12));
   const st = P.pitchStats([100, null, 200, 400], 100);
   check('pitch: summary statistics', st.n === 3 && near(st.voiced, 0.75, 1e-12) && near(st.rangeSt, 24, 1e-9) && near(st.stMean, 12, 1e-9) && near(st.median, 200, 0));
+  // New with the blog article pitch-normalisation-median-semitones-conversation: semitones above a
+  // speaker's own median, for the four turn peaks and the two sex averages the paper prints.
+  const stOf = (f, ref) => +P.semitones(f, ref).toFixed(2);
+  check('pitch: turn peaks 4.03, 10.17, 9.38 and 13.80 semitones over the speaker median',
+    stOf(164.3, 130.2) === 4.03 && stOf(234.3, 130.2) === 10.17 && stOf(367.3, 213.7) === 9.38 && stOf(474.3, 213.7) === 13.8);
+  check('pitch: average voice ranges 24.73 and 24.39 semitones', stOf(584, 140) === 24.73 && stOf(315, 77) === 24.39);
   let msg = ''; try { P.pitchTrack(tone(100), fs, { fmin: 300, fmax: 200 }); } catch (e) { msg = e.message; }
   check('pitch: impossible range explained', /lowest pitch/.test(msg));
 };

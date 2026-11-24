@@ -27,4 +27,17 @@ export default async (check) => {
   check('signal: oversaturated approach has infinite delay', !Number.isFinite(W.websterDelay(60, 20, 700, 1800).d));
   let threw = false; try { W.webster([{ name: 'A', phase: 1, q: 100, s: 1800 }], lost, inter); } catch { threw = true; }
   check('signal: one phase throws', threw);
+  // From src/blog/discoveries/saturation-flow-effective-width-webster-cycle-delay.md: saturation flows
+  // 783 + 368·We (Sugiarto et al. 2024, doi:10.1371/journal.pone.0306112) at We = 7.0, 6.0, 4.0 and 3.5 m,
+  // flows and staging made up, lost time 5.5 s per phase from the paper's start and end lags.
+  {
+    const bsfr = [{ name: 'North', phase: 1, q: 1500, s: 3359 }, { name: 'South', phase: 1, q: 1100, s: 2991 }, { name: 'East', phase: 2, q: 700, s: 2255 }, { name: 'West', phase: 2, q: 550, s: 2071 }];
+    const bl = { 1: 5.5, 2: 5.5 }, bi = { 1: 4, 2: 4 };
+    const b = W.webster(bsfr, bl, bi, { round: 5 });
+    check('signal: BSFR article, Y, C0 and the 90 s cycle', near(b.Y, 0.7569827626609915) && near(b.C0, 88.47109050954913) && b.C === 90 && near(b.L, 11));
+    check('signal: BSFR article, greens and degree of saturation', near(b.P[0].g, 46.60391014684851) && near(b.P[1].g, 32.39608985315149) && near(b.X, 0.8623854258163194) && near(b.A[0].cap, 1739.3614909251573));
+    check('signal: BSFR article, average delay at the optimum cycle', near(b.dAvg, 24.607110871504684, 1e-8));
+    const bw = W.webster(bsfr, bl, bi, { cycle: 65 });
+    check('signal: BSFR article, timed on the manual formula but discharging at the measured rate', near(bw.X, 0.9111829550548971) && near(bw.A[0].cap, 1646.211654507549) && near(bw.dAvg, 24.1374015623121, 1e-8));
+  }
 };

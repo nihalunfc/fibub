@@ -36,4 +36,16 @@ export default async (check) => {
   // Irregular intervals are set aside.
   { const b = r.slice(); b.splice(50, 0, (b[49] + b[50]) / 2); const g = hrvTime(b, 0.2); check('ecg: an extra beat removes 2 intervals', g.removed === 2 && near(g.sdnn, h.sdnn, 3)); }
   try { hrvTime([1, 2]); check('ecg: too few beats throws', false); } catch { check('ecg: too few beats throws', true); }
+  // The two traces rebuilt for the HRV article (Barbosa et al. 2025, J. Vasc. Bras. 24: e20240150): fitted to the
+  // published SDNN and RMSSD of resistance-trained and untrained young adults, measured through the whole pipeline.
+  for (const [name, o, n, sdnn, rmssd] of [
+    ['trained', { hr: 60, lfAmp: 59.37, hfAmp: 61.68, jitter: 27.12, seed: 21 }, 301, 65.79654594334971, 75.29609127644576],
+    ['untrained', { hr: 70, lfAmp: 40.05, hfAmp: 39.5, jitter: 0.39, seed: 22 }, 350, 39.8275980387218, 37.870608677459664],
+  ]) {
+    const s = synthEcg({ fs: 250, dur: 300, ...o });
+    const yy = filtfilt(s.x, bandSections(s.fs, 0.5, 40, 50));
+    const beats = panTompkins(s.x, yy, s.fs).r.map((v) => v / s.fs), g = hrvTime(beats, 0.2);
+    check(`ecg: rebuilt ${name} trace, all ${n} beats and its published SDNN and RMSSD`,
+      beats.length === n && s.beats.length === n && g.removed === 0 && near(g.sdnn, sdnn, 1e-9) && near(g.rmssd, rmssd, 1e-9) && near(g.sd1, g.sdsd / Math.SQRT2, 1e-12));
+  }
 };

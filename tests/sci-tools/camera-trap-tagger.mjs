@@ -32,4 +32,27 @@ export default async (check) => {
   { const e = exampleSurvey(), d = detections(e.photos.filter((p) => p.species), 30), s = summarise(d, e.nights);
     check(`example: three stations, ${e.photos.length} photos, ${d.length} detections; badger never at camera C`, e.stations.length === 3 && e.photos.length > 100 && !d.some((x) => x.species === 'Badger' && x.station === 'Camera C') && s.species[0].species === 'Deer');
     check('example: fox only at night (21:00 to 03:59), birds by day (made-up pattern)', s.species.find((x) => x.species === 'Fox').hours.every((v, h) => !v || h >= 21 || h <= 3) && s.species.find((x) => x.species === 'Bird').hours.every((v, h) => !v || (h >= 8 && h <= 15))); }
+
+  // Rajaji corridor study (Verma, Badola and Mondol 2025, J. Threatened Taxa 17: 26780-26788, CC BY 4.0,
+  // doi:10.11609/jott.9621.17.4.26780-26788), as used in the blog article: its Relative Abundance Index is
+  // detections per 1000 trap nights, so RAI x nights / 1000 must be a whole count, and summarise must give it back.
+  { const RAI = { Laltappar: [0.6, 50.12, 99.64, null, 19.93, 13.89, 1.81, null, null, null, null, null, 12.08, null, null, null, null, 397.34, 752.42],
+      Teenpani: [null, null, 123.31, null, 2.53, 227.2, null, 0.84, null, 3.38, null, null, 15.2, null, null, null, null, 333.61, 26094.59],
+      Chilla: [0.22, 8.03, 7.8, null, 0.89, 22.07, 1.34, null, null, null, null, null, 4.01, null, null, null, null, 108.58, 2360.98],
+      Forest: [12.9, 1363.44, 993.55, 15.05, 172.04, 223.66, 43.01, 25.81, 49.46, 49.46, 329.03, 4.3, 215.05, 4.3, 21.51, 4.3, 17.2, 531.18, 206.45] };
+    const NIGHTS = { Laltappar: 1656, Teenpani: 1184, Chilla: 4485, Forest: 465 };
+    const SP = RAI.Forest.map((_, i) => `sp${i}`);
+    const miss = (u, N) => Math.max(...RAI[u].filter((v) => v !== null).map((v) => { const n = (v * N) / 1000; return Math.abs(n - Math.round(n)); }));
+    const limit = (N) => (0.005 * N) / 1000 + 1e-9;
+    const fits = Object.keys(NIGHTS).every((u) => miss(u, NIGHTS[u]) <= limit(NIGHTS[u]));
+    const smallest = Object.keys(NIGHTS).every((u) => { for (let N = 1; N < NIGHTS[u]; N++) if (miss(u, N) <= limit(N)) return false; return true; });
+    check('Rajaji 2025: every published index value is a whole count at 1656, 1184, 4485 and 465 trap nights, and those are the smallest efforts that work', fits && smallest);
+    check('Rajaji 2025: the forest column is not whole counts at the stated 873 trap nights (worst miss 0.468)', Math.abs(miss('Forest', 873) - 0.468) < 5e-4 && miss('Forest', 873) > 100 * limit(873));
+    const recs = [];
+    Object.keys(NIGHTS).forEach((u, ui) => SP.forEach((sp, si) => { const n = RAI[u][si] === null ? 0 : Math.round((RAI[u][si] * NIGHTS[u]) / 1000);
+      for (let k = 0; k < n; k++) { const t = Date.UTC(2022, 3, 12) + ui * 2592e5 + si * 36e5 + k * 36e5 * SP.length; recs.push({ station: u, t, species: sp, count: 1 }, { station: u, t: t + 20000, species: sp, count: 1 }); } }));
+    const d = detections(recs, 30);
+    const bad = Object.keys(NIGHTS).flatMap((u) => { const s = summarise(d.filter((x) => x.station === u), { [u]: NIGHTS[u] });
+      return RAI[u].flatMap((v, i) => { if (v === null) return []; const r = s.species.find((x) => x.species === SP[i]); return [Math.abs(+(r.rai * 10).toFixed(2) - v)]; }); });
+    check(`Rajaji 2025: the tagger gives back all ${bad.length} published index values (worst ${Math.max(...bad)})`, Math.max(...bad) === 0 && bad.length === 45); }
 };

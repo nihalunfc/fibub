@@ -24,6 +24,8 @@ export default async (check) => {
   // D-values and kill.
   check('f0: D moves with z (1.5 min at 121.1 → 0.15 at 131.1, 15 at 111.1)', near(dAt(1.5, 121.1, 10, 131.1), 0.15) && near(dAt(1.5, 121.1, 10, 111.1), 15));
   check('f0: 10⁶ per item to SAL 10⁻⁶ needs 12 logs; 18 min at 121.1, 0.9227 min at 134', near(neededLR(1e6, 1e-6), 12) && near(timeFor(12, 1.5, 121.1, 10, 121.1), 18) && near(timeFor(12, 1.5, 121.1, 10, 134), 18 * 10 ** -1.29) && near(survivors(1e6, 12), 1e-6));
+  // New with the article on B. subtilis spores in soy milk (Morimatsu 2025): D 0.6 min at 100 °C, z 7.5 °C.
+  check('f0: spores, 1.5 min at 100 °C is 32.32 min at 90 °C and 696.2 at 80 °C (z 7.5); 2.5 logs with D 0.6', near(equivalentTime(1.5, 100, 7.5, 90), 1.5 * 10 ** (10 / 7.5)) && near(equivalentTime(1.5, 100, 7.5, 90), 32.3165, 1e-5) && near(equivalentTime(1.5, 100, 7.5, 80), 696.238, 1e-5) && near(organismKill([0, 1.5], [100, 100], 0.6, 100, 7.5).lr, 2.5) && near(dAt(0.6, 100, 7.5, 87), 32.4702, 1e-5));
   // The example against NumPy.
   const log = parseLog(parseTable(EXAMPLE_CSV), num);
   check('f0: example log reads 46 readings and two named probes', log.t.length === 46 && log.names.join('|') === 'Chamber|Load centre' && log.errors.length === 0 && log.t[45] === 45 && !log.clock);

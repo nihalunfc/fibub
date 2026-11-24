@@ -1,0 +1,112 @@
+---
+title: "Why short particle tracks give the wrong diffusion exponent, and what to do about it"
+summary: "A 2025 paper proposes an ensemble-based correction for the anomalous exponent read from very short single-particle tracks. We test its variance law on simulated Brownian walks with fibub's random walk tool."
+tools: [random-walk-diffusion, diffusion-calculator, distribution-explorer, trend-analyser]
+updated: 2026-11-24
+sources:
+  - "Lavrynenko, R., Kirichenko, L., Yakovlev, S., Lavrynenko, S. and Ryabova, N. (2025), Ensemble-Based Correction for Anomalous Diffusion Exponent Estimation in Single-Particle Tracking, Applied Sciences 15(14): 8000, doi:10.3390/app15148000. Licence CC BY 4.0 from the Crossref record for the version of record (the MDPI page's own rights metadata says CC BY 3.0), checked 2026-11-24; no retraction or correction in Crossref. Values used here: the time-averaged MSD estimator fitted over lags τ = 1 to 4; Var[log TAMSD(τ)] ≈ 1/T for T much greater than τ; the lag-geometry constant Σ(log τ − mean)² ≈ 1.08434; the resulting variance of the exponent ≈ 0.9216/T; the paper's target of trajectories of about ten points."
+  - "MSD = 2dDt and the exponent from a log-log fit of the time-averaged MSD, with a fitted offset for localisation error: standard practice, for example Michalet, X. (2010), Physical Review E 82, 041914."
+paper:
+  title: "Ensemble-Based Correction for Anomalous Diffusion Exponent Estimation in Single-Particle Tracking"
+  authors: "Lavrynenko R, Kirichenko L, Yakovlev S, Lavrynenko S, Ryabova N"
+  journal: "Applied Sciences"
+  year: 2025
+  doi: "10.3390/app15148000"
+  url: "https://doi.org/10.3390/app15148000"
+  licence: "CC BY 4.0"
+  reviewed: true
+---
+
+Watch a labelled molecule under a microscope and you rarely get a long track. It bleaches, it leaves the focal plane, it crosses another track and the software gives up. What you are left with is a few thousand trajectories of **ten or twenty points each**, and from each one people read an **anomalous exponent** α: the power in MSD ∝ t^α, where 1 means ordinary diffusion, below 1 means hindered or confined motion and above 1 means something is pushing. A 2025 paper in *Applied Sciences* works out how badly that estimate behaves on such short tracks and proposes correcting each trajectory's value towards the ensemble's. Everything in its analysis can be tested in a browser, because the [[random-walk-diffusion]] tool both makes the walks and fits them. For the physics on either side, see the [[diffusion-calculator]] and, for the spread of the estimates themselves, the [[distribution-explorer]].
+
+## The paper in brief
+
+The authors work with the **time-averaged mean square displacement** (TA-MSD) of a single trajectory: for each lag τ, average the squared displacement over every pair of frames τ apart in that one track, then fit a straight line to log MSD against log τ. The slope is α̂.
+
+Their analysis says three things. First, the variance of α̂ falls as **1/T**, where T is the number of steps in the trajectory. Second, the variance of the log of the TA-MSD at a short lag is itself about **1/T**. Put together, with the fit done over the first four lags (τ = 1, 2, 3, 4), the geometry of the fit contributes the constant Σ(log τ − mean)² ≈ **1.08434**, so
+
+**Var[α̂] ≈ 0.9216 / T.**
+
+Third, because the per-trajectory estimates are noisy but their *ensemble* mean is not, each estimate should be pulled towards the ensemble mean by an amount set by the two variances — a shrinkage correction built on a time-and-ensemble averaged MSD. The paper aims this at trajectories "of up to ten points", where the single-track estimate is worst.
+
+## Checked with the tools
+
+The paper's variance law is a prediction about an estimator, so it can be tested exactly, with no data at all: generate walks whose true exponent is known to be 1, run the tool's own TA-MSD and log-log fit on them, and look at the spread.
+
+We simulated **8000 two-dimensional Brownian trajectories** at each of eight lengths (10 to 400 steps), with D = 0.5 µm²/s and 1 s frames, using the random number generator and the TA-MSD of `src/lib/sci/phwalk.ts` — the maths behind the [[random-walk-diffusion]] tool. For each trajectory we fitted α over lags 1 to 4, exactly as the paper does. These are **simulated walks, not the paper's data**.
+
+**The geometric constant checks out.** For τ = 1 to 4 we get Σ(log τ − mean)² = **1.084207**, against the paper's 1.08434, and its reciprocal is **0.92233** against the paper's 0.9216. The small differences are rounding in the paper, not a mistake.
+
+**The 1/T law holds, from about 50 steps up.** Multiplying the measured variance by T should give a flat line at 0.9216 if the law is exact:
+
+| Trajectory length T | Var[α̂] × T (8000 tracks) | Mean α̂ (true value 1) |
+|---|---|---|
+| 10 | **1.203 ± 0.019** | 0.925 |
+| 15 | 1.125 ± 0.018 | 0.951 |
+| 20 | 1.051 ± 0.017 | 0.967 |
+| 30 | 1.011 ± 0.016 | 0.982 |
+| 50 | 0.950 ± 0.015 | 0.992 |
+| 100 | 0.948 ± 0.015 | 0.993 |
+| 200 | 0.939 ± 0.015 | 0.997 |
+| 400 | 0.891 ± 0.014 | 0.999 |
+
+At ten steps the real variance is **30 % larger** than the law predicts, and the spread of α̂ is a standard deviation of **0.347** — so a single ten-point track tells you almost nothing about whether α is 0.7 or 1.3. From 50 steps on the product settles into a band around 0.89 to 0.95, a few per cent *below* 0.9216 rather than exactly on it, which is what you expect when Var[log TAMSD] ≈ 1/T is itself an approximation that ignores the strong correlation between neighbouring lags. The law's shape is right; its constant is good to within about 5 %.
+
+<!-- fig:variance -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 298" role="img" aria-label="Variance of the exponent estimated from the time-averaged MSD over lags 1 to 4, multiplied by the trajectory length, for 8000 simulated Brownian trajectories at each length. The dashed line is the paper's asymptotic 0.9216." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>Spread of the exponent: does Var[α̂] × T settle at 0.9216?</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">Spread of the exponent: does Var[α̂] × T settle at 0.9216?</text><line x1="58" x2="546" y1="252" y2="252" style="stroke:var(--line)"/><text x="52" y="256" text-anchor="end" style="fill:var(--muted)">0.8</text><line x1="58" x2="546" y1="178.5" y2="178.5" style="stroke:var(--line)"/><text x="52" y="182.5" text-anchor="end" style="fill:var(--muted)">1</text><line x1="58" x2="546" y1="105.1" y2="105.1" style="stroke:var(--line)"/><text x="52" y="109.1" text-anchor="end" style="fill:var(--muted)">1.2</text><line x1="58" x2="58" y1="252" y2="256" style="stroke:var(--muted)"/><text x="58" y="269" text-anchor="middle" style="fill:var(--muted)">0</text><line x1="177" x2="177" y1="252" y2="256" style="stroke:var(--muted)"/><text x="177" y="269" text-anchor="middle" style="fill:var(--muted)">100</text><line x1="296" x2="296" y1="252" y2="256" style="stroke:var(--muted)"/><text x="296" y="269" text-anchor="middle" style="fill:var(--muted)">200</text><line x1="415.1" x2="415.1" y1="252" y2="256" style="stroke:var(--muted)"/><text x="415.1" y="269" text-anchor="middle" style="fill:var(--muted)">300</text><line x1="534.1" x2="534.1" y1="252" y2="256" style="stroke:var(--muted)"/><text x="534.1" y="269" text-anchor="middle" style="fill:var(--muted)">400</text><line x1="58" x2="546" y1="252" y2="252" style="stroke:var(--muted)"/><text x="302" y="290" text-anchor="middle" style="fill:var(--ink)">Trajectory length T (steps)</text><text transform="translate(14 151) rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Var[α̂] × T</text><circle cx="69.9" cy="103.9" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="75.9" cy="132.6" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="81.8" cy="159.7" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="93.7" cy="174.4" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="117.5" cy="197" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="177" cy="197.8" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="296" cy="200.8" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="534.1" cy="218.7" r="3.4" style="fill:var(--c-blog);opacity:1"/><line x1="69.9" x2="69.9" y1="110.9" y2="96.9" style="stroke:var(--c-blog)"/><line x1="75.9" x2="75.9" y1="139.1" y2="126.1" style="stroke:var(--c-blog)"/><line x1="81.8" x2="81.8" y1="165.8" y2="153.6" style="stroke:var(--c-blog)"/><line x1="93.7" x2="93.7" y1="180.3" y2="168.5" style="stroke:var(--c-blog)"/><line x1="117.5" x2="117.5" y1="202.5" y2="191.5" style="stroke:var(--c-blog)"/><line x1="177" x2="177" y1="203.3" y2="192.3" style="stroke:var(--c-blog)"/><line x1="296" x2="296" y1="206.3" y2="195.3" style="stroke:var(--c-blog)"/><line x1="534.1" x2="534.1" y1="223.9" y2="213.5" style="stroke:var(--c-blog)"/><path d="M69.9 207.3L534.1 207.3" style="fill:none;stroke:var(--c-tools);stroke-width:2;stroke-linejoin:round;stroke-dasharray:5 4"/><circle cx="63" cy="36" r="4" style="fill:var(--c-blog)"/><text x="74" y="40" style="fill:var(--muted)">Our simulated Brownian tracks</text><line x1="292.8" x2="304.8" y1="36" y2="36" style="stroke:var(--c-tools);stroke-width:2;stroke-dasharray:5 4"/><text x="308.8" y="40" style="fill:var(--muted)">Paper’s law, 0.9216</text><text class="fibub-mark" x="546" y="290" text-anchor="end" style="fill:var(--ink);opacity:.5;font:600 11px system-ui,sans-serif">fibub.com</text></svg><figcaption>Figure 1. The paper's variance law tested on 8000 simulated Brownian trajectories per length, with the Random walk tool's own time-averaged MSD and log-log fit. Beyond about 50 steps the product settles on the predicted 0.9216; at 10 steps it is a third larger. Bars are the sampling error of the variance.</figcaption></figure>
+<!-- /fig:variance -->
+
+**There is a bias, not just noise.** The mean of α̂ over 8000 pure Brownian tracks of ten steps is **0.925**, not 1: taking the logarithm of a noisy MSD pulls the fit down, and the effect does not average away within one track. That systematic 7.5 % undershoot is exactly the thing the paper's correction is for, and it is worth remembering when a paper reports "subdiffusion, α ≈ 0.9" from short tracks.
+
+**Pooling fixes most of it.** Feed the tool ten of those ten-step tracks at once and it computes the time-and-ensemble averaged MSD before fitting. The mean α̂ becomes **0.991** and the standard deviation drops from 0.347 to **0.112**, a factor of 3.1 — close to the √10 you would hope for. This is the quantitative case for the paper's approach: the ensemble carries the information a single short track cannot.
+
+<!-- fig:bias -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 298" role="img" aria-label="Mean estimated exponent, with one standard deviation as the bar, for single trajectories and for groups of ten pooled into one time-and-ensemble averaged MSD. Short single tracks read low and scatter widely." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>The exponent of pure Brownian motion, read off short tracks</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">The exponent of pure Brownian motion, read off short tracks</text><line x1="58" x2="546" y1="229.6" y2="229.6" style="stroke:var(--line)"/><text x="52" y="233.6" text-anchor="end" style="fill:var(--muted)">0.6</text><line x1="58" x2="546" y1="184.7" y2="184.7" style="stroke:var(--line)"/><text x="52" y="188.7" text-anchor="end" style="fill:var(--muted)">0.8</text><line x1="58" x2="546" y1="139.8" y2="139.8" style="stroke:var(--line)"/><text x="52" y="143.8" text-anchor="end" style="fill:var(--muted)">1</text><line x1="58" x2="546" y1="94.9" y2="94.9" style="stroke:var(--line)"/><text x="52" y="98.9" text-anchor="end" style="fill:var(--muted)">1.2</text><line x1="58" x2="546" y1="50" y2="50" style="stroke:var(--line)"/><text x="52" y="54" text-anchor="end" style="fill:var(--muted)">1.4</text><line x1="58" x2="58" y1="252" y2="256" style="stroke:var(--muted)"/><text x="58" y="269" text-anchor="middle" style="fill:var(--muted)">0</text><line x1="177" x2="177" y1="252" y2="256" style="stroke:var(--muted)"/><text x="177" y="269" text-anchor="middle" style="fill:var(--muted)">100</text><line x1="296" x2="296" y1="252" y2="256" style="stroke:var(--muted)"/><text x="296" y="269" text-anchor="middle" style="fill:var(--muted)">200</text><line x1="415.1" x2="415.1" y1="252" y2="256" style="stroke:var(--muted)"/><text x="415.1" y="269" text-anchor="middle" style="fill:var(--muted)">300</text><line x1="534.1" x2="534.1" y1="252" y2="256" style="stroke:var(--muted)"/><text x="534.1" y="269" text-anchor="middle" style="fill:var(--muted)">400</text><line x1="58" x2="546" y1="252" y2="252" style="stroke:var(--muted)"/><text x="302" y="290" text-anchor="middle" style="fill:var(--ink)">Trajectory length T (steps)</text><text transform="translate(14 151) rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Estimated exponent α̂</text><line x1="58" x2="546" y1="139.8" y2="139.8" style="stroke:var(--muted);stroke-dasharray:4 4"/><text x="542" y="134.8" text-anchor="end" style="fill:var(--muted)">the true value, α = 1</text><circle cx="69.9" cy="156.7" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="75.9" cy="150.9" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="81.8" cy="147.3" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="93.7" cy="143.8" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="117.5" cy="141.6" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="177" cy="141.3" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="296" cy="140.6" r="3.4" style="fill:var(--c-blog);opacity:1"/><circle cx="534.1" cy="140.1" r="3.4" style="fill:var(--c-blog);opacity:1"/><line x1="69.9" x2="69.9" y1="234.5" y2="78.8" style="stroke:var(--c-blog)"/><line x1="75.9" x2="75.9" y1="212.3" y2="89.4" style="stroke:var(--c-blog)"/><line x1="81.8" x2="81.8" y1="198.7" y2="95.8" style="stroke:var(--c-blog)"/><line x1="93.7" x2="93.7" y1="185" y2="102.5" style="stroke:var(--c-blog)"/><line x1="117.5" x2="117.5" y1="172.5" y2="110.7" style="stroke:var(--c-blog)"/><line x1="177" x2="177" y1="163.2" y2="119.5" style="stroke:var(--c-blog)"/><line x1="296" x2="296" y1="155.9" y2="125.2" style="stroke:var(--c-blog)"/><line x1="534.1" x2="534.1" y1="150.7" y2="129.5" style="stroke:var(--c-blog)"/><circle cx="69.9" cy="141.8" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="75.9" cy="140.1" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="81.8" cy="141.3" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="93.7" cy="139.5" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="117.5" cy="140.5" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="177" cy="139.8" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="296" cy="139.8" r="3.4" style="fill:var(--c-tools);opacity:1"/><circle cx="534.1" cy="139.6" r="3.4" style="fill:var(--c-tools);opacity:1"/><line x1="69.9" x2="69.9" y1="167" y2="116.6" style="stroke:var(--c-tools)"/><line x1="75.9" x2="75.9" y1="158.5" y2="121.7" style="stroke:var(--c-tools)"/><line x1="81.8" x2="81.8" y1="158.3" y2="124.4" style="stroke:var(--c-tools)"/><line x1="93.7" x2="93.7" y1="152.6" y2="126.5" style="stroke:var(--c-tools)"/><line x1="117.5" x2="117.5" y1="150.2" y2="130.8" style="stroke:var(--c-tools)"/><line x1="177" x2="177" y1="146.8" y2="132.9" style="stroke:var(--c-tools)"/><line x1="296" x2="296" y1="144.6" y2="135.1" style="stroke:var(--c-tools)"/><line x1="534.1" x2="534.1" y1="142.9" y2="136.4" style="stroke:var(--c-tools)"/><circle cx="63" cy="36" r="4" style="fill:var(--c-blog)"/><text x="74" y="40" style="fill:var(--muted)">One track at a time</text><circle cx="225.8" cy="36" r="4" style="fill:var(--c-tools)"/><text x="236.8" y="40" style="fill:var(--muted)">Ten tracks pooled</text><text class="fibub-mark" x="546" y="290" text-anchor="end" style="fill:var(--ink);opacity:.5;font:600 11px system-ui,sans-serif">fibub.com</text></svg><figcaption>Figure 2. The same trajectories: the mean exponent read from one track at a time, and from ten tracks pooled into a single time-and-ensemble averaged MSD. Bars are one standard deviation of the estimate, not its standard error.</figcaption></figure>
+<!-- /fig:bias -->
+
+**Localisation noise bends α̂ further down.** Add camera noise to the positions of the same ten-step tracks and the measured exponent falls: with a position error whose variance is 10 % of one step's mean square displacement, mean α̂ = **0.831**; at 25 %, **0.733**. The fitted diffusion coefficient, meanwhile, stays right: **0.499 and 0.507 µm²/s** against the true 0.5, because the tool fits an offset for the localisation error. So on short, noisy tracks D is the trustworthy number and α is not.
+
+## How we made the graphs
+
+Both charts and every number above come from `scripts/blog-figures/short-track-msd-anomalous-exponent-bias-correction.mjs` in fibub's public code. It calls `rng` (the seeded generator), `trackMSD` (the time-and-ensemble averaged MSD, by matching frames on time so gaps are allowed), `alphaFit` (the log-log slope and its standard error) and `fitD` (MSD = 2dDt with an offset) from `src/lib/sci/phwalk.ts`, the maths behind the [[random-walk-diffusion]] tool.
+
+From the paper: the estimator (TA-MSD over lags 1 to 4), the variance law, the constant 1.08434 and the ten-point target. **Our assumptions**, all in the script: two dimensions, D = 0.5 µm²/s, 1 s frames, pure Brownian motion (so the true α is exactly 1), 8000 trajectories per length, groups of ten for the pooled case, and localisation noise set as a fraction of one step's mean square displacement. The paper's own simulations use fractional Brownian motion, which can give α ≠ 1; we used the α = 1 case because that is where the true answer is known without any extra model.
+
+## How we test the maths
+
+On every change to fibub, `tests/sci.mjs` runs `tests/sci-tools/random-walk-diffusion.mjs`, which pins this module against an independent NumPy script and against theory:
+
+- the time-averaged MSD of the ten example tracks must match NumPy's array-difference calculation to ten decimal places, with 990 displacement pairs at the first lag;
+- fitting the first ten lags must give D = 0.4716078395 through the origin and D = 0.4657906169 with an offset of 0.0162882232, as `numpy.linalg.lstsq` does, with the same standard error; the exponent must be 0.9694971955, as `numpy.polyfit` gives;
+- 1D, 2D and 3D lattice and Gaussian walks of 2000 walkers must each recover D = a²/(2dΔt) to within 6 %, and the same seed must reproduce a run exactly.
+- **New with this article**: the lag geometry for τ = 1 to 4 must give Σ(log τ − mean)² = 1.0842075, and 2000 seeded ten-step Brownian tracks must reproduce a mean α̂ of 0.9208 (true value 1) and a Var[α̂] × T of 1.2025, so the short-track bias stays pinned if the generator or the fit ever changes.
+
+## Check it yourself
+
+On the [[random-walk-diffusion]] page, in the *Particle tracks* card:
+
+1. Press **Use the example tracks** (ten made-up Brownian tracks, 100 frames each, 0.1 s apart).
+2. Set *Lags to fit* to **4** and leave **Fit an offset (localisation error)** ticked, *Coordinates* on **x, y** and *First column* on **track name**.
+3. It reads *Exponent α* **0.964 ± 0.004**, D about **0.469 µm²/s** and an *Offset* of **0.0157 µm²** (a position noise of about 0.063 µm). Ten long tracks pooled give a tight, almost unbiased answer.
+4. Now replace the box with one short track of our own — *First column* **time (one track)**, times in seconds, positions in µm:
+
+   **0, 0, 0**; **1, −0.66, −2.189**; **2, −0.215, −2.272**; **3, 1.652, −0.568**; **4, 2.273, −2.372**; **5, 3.216, −1.399**; **6, 2.754, −0.398**; **7, 2.65, −0.427**; **8, 1.243, 0.401**; **9, 2.236, 1.046**; **10, 2.436, 0.828**
+
+5. With *Lags to fit* **4**, it reads *Exponent α* **0.874 ± 0.114** and D **0.471 ± 0.072 µm²/s**. The walk was generated with α exactly 1 and D exactly 0.5, so you are looking at the short-track error in one example: D is fine, α is 13 % low and its error bar is wide.
+6. In the *Simulated walk* card, set *Walkers* to **8000**, *Steps per walker* to **10**, *Steps* to **Gaussian** and press nothing else: the ensemble MSD over the same ten steps gives α = 1.003 and D = 0.249 (the theory value is a²/(2dΔt) = 0.25). Whole-ensemble fitting is a different statistical problem from per-track fitting.
+
+## What researchers can use it for
+
+- **Decide how long your tracks must be** before you claim a value of α: run the simulation at your own frame rate, D and track length and read the spread. Below about 30 steps a single-track α is not usable on its own.
+- **Put an honest error bar** on a published exponent: the tool prints the standard error of the log-log slope, and the 0.9216/T law gives a second, independent estimate.
+- **Separate noise from subdiffusion**: fit with and without the localisation offset and watch α move. A 10 % position-error variance alone drags α̂ from 1 to 0.83.
+- **Check a pipeline end to end**: generate tracks with a known α and D, push them through your own analysis code, and see what comes back — the tool's CSV downloads make that a two-minute job.
+- **Teach the estimator**, not just the physics: the same data, fitted per track or pooled, gives two different answers, which is the paper's point.
+
+## The fine print
+
+- Our walks are **simulated** with the tool's own generator. Nothing here reproduces the paper's figures or tables; we test the law it derives.
+- We used ordinary Brownian motion (α = 1). The paper's correction is built for fractional Brownian motion with α away from 1, where the bias and variance differ.
+- The paper's shrinkage formula itself (its equations 15 to 17) is not implemented in the tool; we checked the variance law it rests on and the pooled estimator it leans on.
+- The variance of a variance is wide: our bars are ±√(2/(N−1)) of the value, with N = 8000, so differences smaller than about 3 % are not significant.
+- Real tracks also have drift, confinement and switching between states, all of which move α for physical reasons rather than statistical ones.

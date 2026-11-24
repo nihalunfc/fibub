@@ -22,5 +22,11 @@ export default async (check) => {
     check('point count: random points repeat for a seed, differ for another, stay inside the margin', JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(a) !== JSON.stringify(c) && a.every((p) => p.x >= 0.05 && p.x <= 0.95 && p.y >= 0.05 && p.y <= 0.95));
     const r = P.mulberry32(7), raw = Array.from({ length: 300 }, () => { const x = r(), y = r(); return `${0.05 + 0.9 * x},${0.05 + 0.9 * y}`; }).sort();
     check('point count: random points are the seeded points, only reordered', JSON.stringify(a.map((p) => `${p.x},${p.y}`).sort()) === JSON.stringify(raw)); }
+  // Blog: mafic-ultramafic-modal-mineralogy-point-count-precision (Taksavasu 2025, Geosciences 15: 89), 400-point counts.
+  { const g = P.classStat(219, 400), pl = P.classStat(36, 400);
+    check('point count: gabbronorite plagioclase 219 of 400 is 54.75 % with 2σ 4.98 and exact 49.73 to 59.70 %',
+      near(g.p * 100, 54.75, 1e-12) && near(g.twoSigma * 100, 4.9774, 1e-3) && near(g.exact[0] * 100, 49.7274, 1e-3) && near(g.exact[1] * 100, 59.7018, 1e-3));
+    check('point count: 9 % plagioclase in 400 points (6.38 to 12.24 %) cannot be placed either side of the 10 % name boundary',
+      near(pl.exact[0] * 100, 6.3831, 1e-3) && near(pl.exact[1] * 100, 12.2420, 1e-3) && pl.exact[0] * 100 < 10 && pl.exact[1] * 100 > 10 && P.pointsNeeded(0.1, 0.02) === 900); }
   check('point count: beta inverse undoes the incomplete beta', [[0.3, 2, 5], [0.025, 1, 99], [0.975, 40, 3]].every(([p, a, b]) => near(ibeta(P.betaInv(p, a, b), a, b), p, 1e-12)));
 };

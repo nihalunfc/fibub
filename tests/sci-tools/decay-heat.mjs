@@ -13,5 +13,11 @@ export default async (check) => {
   check('decay heat: energy is the integral (midpoint rule check)', (() => { let s = 0; const n = 200000, a = 100, b = 2000; for (let i = 0; i < n; i++) s += fraction(a + ((i + 0.5) * (b - a)) / n, 3e7); return rel(s * (b - a) / n, energy(a, b, 3e7), 1e-8); })());
   check('decay heat: fraction falls with time', [1, 10, 100, 1e3, 1e4, 1e5, 1e6].every((t, i, a) => i === 0 || fraction(t, 1e7) < fraction(a[i - 1], 1e7)));
   check('decay heat: a level above the start is reached at once; an impossible level never', timeBelow(0.9, 1e7) === 1e-3 && Number.isNaN(timeBelow(1e-12, Infinity)));
+  // The 3,250 MW station-blackout case of Liu et al. (2023), Front. Energy Res. 11: 1191467 (CC BY), whose core-damage
+  // times are 9.74 h after 1,350 days of operation and 15.37 h after one week.
+  check('decay heat: 3,250 MW core gives 34.4 MW after 1,350 days and 25.2 MW after a week, one hour in',
+    Math.abs(fraction(3600, 1350 * 86400) * 3250 - 34.4) < 0.05 && Math.abs(fraction(3600, 7 * 86400) * 3250 - 25.2) < 0.05);
+  check('decay heat: energy from 100 s to the paper’s core-damage times is 910 GJ and 792 GJ',
+    Math.abs((energy(100, 9.74 * 3600, 1350 * 86400) * 3250) / 1000 - 910.418) < 0.01 && Math.abs((energy(100, 15.37 * 3600, 7 * 86400) * 3250) / 1000 - 791.678) < 0.01);
   check('decay heat: durations read naturally', duration(3600) === '1 hour' && duration(90) === '1.5 minutes' && duration(86400 * 30) === '30 days' && duration(0.5) === '0.5 seconds');
 };

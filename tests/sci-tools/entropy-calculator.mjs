@@ -58,4 +58,14 @@ export default async (check) => {
   check('entropy: plain table', JSON.stringify(readTable('1, 2\n# note\n3 , 4').rows) === '[[1,2],[3,4]]');
   check('entropy: rejects negatives', (() => { try { entropy([0.5, -0.5]); return false; } catch { return true; } })());
   check('entropy: ragged joint table rejected', (() => { try { joint([[1, 2], [3]]); return false; } catch (e) { return /same number/.test(e.message); } })());
+  // Pinned by src/blog/discoveries/smartwatch-sensor-shannon-vs-min-entropy-bernoulli-bias.md: the two bit sources
+  // implied by the min-entropies of Svarcmajer et al. (2025), Sensors 25(17): 5298.
+  for (const [nm, p, H, Hm] of [['shake 0.52924', 0.52924, 0.9975316480645866, 0.9180059901475667], ['still 0.5544', 0.5544, 0.9914441652618599, 0.8510008374122358]]) {
+    const s = summarise([p, 1 - p]);
+    near(`biased bit source, ${nm}: Shannon`, h2(p), H, 1e-15);
+    near(`biased bit source, ${nm}: Shannon from summarise`, s.H, H, 1e-15);
+    near(`biased bit source, ${nm}: min-entropy`, s.minEntropy, Hm, 1e-15);
+  }
+  near('Jensen-Shannon between the shake and still bit sources', divergence([0.52924, 0.47076], [0.5544, 0.4456]).js, 0.00045989863319286515, 1e-15);
+  check('entropy: min-entropy sets the raw bits per 128-bit key: 140 shaken, 151 still', Math.ceil(128 / 0.918) === 140 && Math.ceil(128 / 0.851) === 151);
 };

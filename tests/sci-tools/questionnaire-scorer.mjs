@@ -1,5 +1,6 @@
 // #723 Questionnaire scorer: checked against pandas/numpy/scipy on the page's made-up example (b2/q_check.py).
 import { scoreScales, parseItems, reverseScore } from '../../src/lib/sci/questionnaire.ts';
+import { cronbach } from '../../src/lib/sci/reliability.ts';
 
 export default async (check) => {
   const near = (a, b, t = 1e-6) => Math.abs(a - b) <= t;
@@ -37,5 +38,14 @@ P14	4	3	3	3	4	3	2	3`;
   check('questionnaire: 100 % rule drops incomplete people', Number.isNaN(strict.scores[3]) && strict.scored === 12);
   const [loose] = scoreScales(X, scales, { ...o, minAnswered: 0.5 });
   check('questionnaire: 50 % rule keeps two of four (prorated)', near(loose.scores[10], 18) && loose.prorated === 2);
+  // Standardised alpha = k·rbar / (1 + (k − 1)·rbar), pinned on item sets built from orthogonal Hadamard
+  // columns, whose pairwise correlations are exactly rbar (blog: transdiagnostic-inventory-alpha-inter-item-correlation).
+  const had = (n) => { let H = [[1]]; while (H.length < n) H = [...H.map((r) => [...r, ...r]), ...H.map((r) => [...r, ...r.map((v) => -v)])]; return H; };
+  const H32 = had(32);
+  const exact = (k, r) => H32.map((row) => Array.from({ length: k }, (_, j) => Math.sqrt(r) * row[1] + Math.sqrt(1 - r) * row[j + 2]));
+  const std = (k, r) => cronbach(exact(k, r));
+  check('questionnaire: standardised alpha 0.896203 for 6 items correlating 0.59', near(std(6, 0.59).std, 0.8962026, 1e-6) && near(std(6, 0.59).rbar, 0.59, 1e-12));
+  check('questionnaire: standardised alpha 0.963934 for 21 items at 0.56, 0.870205 at 0.242', near(std(21, 0.56).std, 0.9639344, 1e-6) && near(std(21, 0.242).std, 0.8702046, 1e-6));
+  check('questionnaire: equal item variances make alpha and its standardised form the same', near(std(4, 0.42).alpha, 0.7433628, 1e-6) && near(std(4, 0.42).alpha, std(4, 0.42).std, 1e-12));
   check('questionnaire: out of range answer refused', (() => { try { scoreScales([[1, 7]], [{ name: 'A', items: [0, 1] }], o); return false; } catch (e) { return /outside/.test(e.message); } })());
 };

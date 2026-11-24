@@ -21,4 +21,21 @@ export default async (check) => {
   check('npv: profitability index = 1 + NPV / outlay', near(profitabilityIndex(0.1, REF.ex.cf), 1 + REF.ex.npv10 / 10000));
   check('npv: equivalent annuity of a level annuity is the payment', near(equivalentAnnuity(0.07, [0, 100, 100, 100, 100]), 100) && near(equivalentAnnuity(0, [-30, 10, 10, 10]), 0));
   check('npv: a double root (cash flows −1, 2, −1) is found', (() => { const r = irrAll([-1, 2, -1]); return r.length === 1 && Math.abs(r[0]) < 1e-6; })());
+  // Pinned by src/blog/discoveries/anaerobic-co-digestion-biogas-npv-irr-payback-discount-rate.md.
+  // (a) Level cash flows with a simple payback of P periods have an IRR that tends to 1 / P from below.
+  for (const P of [2, 3, 4, 5]) {
+    const cf = [-P * 4, ...Array(60).fill(4)];
+    const r = irrAll(cf)[0];
+    check(`npv: level flows with a ${P}-period payback give IRR ${(100 * r).toFixed(3)} %, just under 1/${P}`,
+      r < 1 / P && Math.abs(r - 1 / P) < 4e-6 * P && Math.abs(payback(cf) - P) < 1e-12);
+  }
+  // (b) The reconstructed 20-year biogas project: GBP 4.0 m in year 1 growing 4.1750782272 % a year, capital
+  // GBP 12.5079818985 m, so payback 3.0000 years, IRR 36.00 %, and NPV GBP 19.00 m at 15.161023 %.
+  const bioG = 0.041750782272114706, bioR = 0.15161023156321274;
+  const bioCF = [-4 * (1 + (1 + bioG) + (1 + bioG) ** 2), ...Array.from({ length: 20 }, (_, t) => 4 * (1 + bioG) ** t)];
+  check(`npv: biogas project: capital ${(-bioCF[0]).toFixed(3)} m, IRR ${(100 * irrAll(bioCF)[0]).toFixed(2)} %, payback ${payback(bioCF).toFixed(4)} y`,
+    Math.abs(-bioCF[0] - 12.50798189854671) < 1e-12 && Math.abs(irrAll(bioCF)[0] - 0.36) < 1e-9 && Math.abs(payback(bioCF) - 3) < 1e-12);
+  check(`npv: biogas project at ${(100 * bioR).toFixed(4)} %: NPV ${npv(bioR, bioCF).toFixed(3)} m, discounted payback ${payback(bioCF, bioR).toFixed(3)} y, PI ${profitabilityIndex(bioR, bioCF).toFixed(3)}, MIRR ${(100 * mirr(bioCF, bioR, bioR)).toFixed(2)} %`,
+    Math.abs(npv(bioR, bioCF) - 19) < 1e-9 && Math.abs(payback(bioCF, bioR) - 4.205972045779785) < 1e-9
+    && Math.abs(profitabilityIndex(bioR, bioCF) - 2.5190300205189424) < 1e-12 && Math.abs(mirr(bioCF, bioR, bioR) - 0.20605519000360917) < 1e-12);
 };

@@ -59,6 +59,13 @@ export default async (check) => {
   const pa = simPValue(simulateNull({ test: 'adf', regression: 'c', T: ra.nobs }, 4000, normalRng(1)), ra.stat, true);
   check(`unitroot: ADF p for the random walk ${pa.p.toFixed(3)} well above 0.1`, pa.p > 0.3 && pa.p < 0.6);
   check('unitroot: p-value uses (1 + hits)/(1 + R)', simPValue([1, 2, 3], 0, true).p === 0.25 && simPValue([1, 2, 3], 2.5, false).p === 0.5);
+  // New with the Ethereum on-chain article (Mohammad et al. 2026, Table 2, N = 108): printed ADF p-values (constant) and KPSS p-values.
+  const adfC = simulateNull({ test: 'adf', regression: 'c', T: 107 }, 6000, normalRng(1));
+  const printed = [[-2.251, 0.188], [-1.817, 0.372], [-1.692, 0.435], [-1.548, 0.509], [-1.902, 0.331], [-1.618, 0.474]];
+  check('unitroot: six printed ADF p-values (constant, 107 rows) are reproduced within 0.015', printed.every(([s, p]) => Math.abs(simPValue(adfC, s, true).p - p) < 0.015));
+  const kT = simulateNull({ test: 'kpss', regression: 'ct', n: 108, lags: 0 }, 6000, normalRng(1)), kL = simulateNull({ test: 'kpss', regression: 'c', n: 108, lags: 0 }, 6000, normalRng(1));
+  const pT = simPValue(kT, 0.145, false).p, pL = simPValue(kL, 0.145, false).p;
+  check(`unitroot: KPSS 0.145 for 108 rows gives p ${pT.toFixed(3)} against a trend (printed 0.051) but ${pL.toFixed(2)} against a level`, pT > 0.035 && pT < 0.07 && pL > 0.3);
   const t = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
   check('unitroot: too-large lag explained', /at most 58/.test(t(() => adf(col('price_a'), { maxlag: 80, autolag: null }))));
   check('unitroot: blanks explained', /blanks or text/.test(t(() => kpss([1, 2, NaN, 4, 5]))));

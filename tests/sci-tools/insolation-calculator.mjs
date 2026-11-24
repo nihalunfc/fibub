@@ -37,5 +37,9 @@ export default async (check) => {
   check('insolation: instantaneous at noon on the equator at equinox = S0/r²; zero at night', near(I.instant(P, 0, 0, 12), 1361 / I.distance(P, 0) ** 2, 1e-9) && I.instant(P, 0, 0, 0) === 0);
   check('insolation: day length 12 h at the equinox, 24 h above the Arctic Circle at the solstice', near(I.dayLength(P, 45, 0), 12, 1e-9) && near(I.dayLength(P, 70, 90), 24, 1e-9) && near(I.dayLength(P, 70, 270), 0, 1e-9));
   check('insolation: dates', I.dateOf(172) === '21 Jun' && I.dateOf(80) === '21 Mar' && I.dateOf(1) === '1 Jan' && I.dateOf(365.2) === '31 Dec');
+  // Blog article "The calendar traps in insolation": the conventional September equinox date and the caloric
+  // half-years at the Milankovitch latitude today.
+  check('insolation: the September equinox falls on day 266.41 today (23 Sep), not day 264', near(I.dayOfLambda(P, 180), 266.41, 0.005) && I.dateOf(I.dayOfLambda(P, 180)) === '23 Sep');
+  check('insolation: 65° N caloric summer mean 366.0 and winter 61.4 W/m², 143.6 days above 275 W/m²', near(h65.summerMean, 366.0, 0.05) && near(h65.winterMean, 61.36, 0.05) && near(h65.aboveDays, 143.6, 0.05));
   check('insolation: bad orbits are refused', I.checkOrbit({ ...P, e: 0.5 }) && I.checkOrbit({ ...P, obl: -1 }) && I.checkOrbit({ ...P, S0: 0 }) && I.checkOrbit(P) === null);
 };

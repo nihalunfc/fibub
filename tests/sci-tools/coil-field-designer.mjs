@@ -39,4 +39,12 @@ export default async (check) => {
   check('coil: anti-Helmholtz 1 % gradient half-length 25.1 mm (SciPy brentq)', Math.abs(C.gradientUniformLength(C.loops(C.preset('anti', 0.1, 100, 1)), 0, 0.01, 1e-4, 0.08) - 0.0250953) < 1e-4);
   check('coil: wire length N × 2πR', rel(C.wireLength(C.preset('helmholtz', 0.1, 100, 1)), 2 * 100 * 2 * Math.PI * 0.1, 1e-12));
   check('coil: uniform sphere of a Helmholtz pair is smaller than its 1 % axis length but not zero', (() => { const s = C.uniformSphere(H, 0, 0.01, 5e-4, 0.1); return s > 0.01 && s <= 0.0315; })());
+  // The magnetic-treatment coil sets of the blog article helmholtz-coil-200-gauss-uniform-volume-biot-savart
+  // (Chen et al. 2025, AgriEngineering 7(11): 385, doi:10.3390/agriengineering7110385).
+  { const stack = C.loops(Array.from({ length: 8 }, (_, i) => ({ R: 0.075, z: -0.1 + (i * 0.2) / 7, N: 135, I: 4.3, w: 0, d: 0 })));
+    check('coil: the eight-coil 135-turn stack at 4.3 A gives 213.8 G at its centre', rel(C.fieldAt(stack, 0, 0).bz * 1e4, 213.804, 1e-5));
+    const z50 = (() => { let lo = 0, hi = 0.5; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; C.fieldAt(stack, 0, m).bz * 1e4 > 50 ? (lo = m) : (hi = m); } return (lo + hi) / 2; })();
+    check('coil: that stack has fallen to 50 G at 16.63 cm on the axis', Math.abs(z50 - 0.16634) < 2e-4);
+    const hz = C.loops(C.preset('helmholtz', 0.48, 890, 12));
+    check('coil: a 48 cm, 890-turn Helmholtz pair at 12 A gives 200.1 G uniform to 1 % in a 15 cm sphere', rel(C.fieldAt(hz, 0, 0).bz * 1e4, 200.09, 1e-3) && Math.abs(C.uniformSphere(hz, 0, 0.01, 0.0012, 0.48) - 0.15) < 2e-3); }
 };

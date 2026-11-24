@@ -2,6 +2,7 @@
 // Butterworth highpass or bandpass, zero phase) against SciPy 1.18 sosfiltfilt, PGA, horizontal and 3-D peaks, and
 // the amplitude-spectrum peak bin against NumPy's rfft (chk885.py), all on the page's made-up demo recording.
 import { demo, uniform, analyse, parseRecording, interp, rateOf, jitter, feel, G0 } from '../../src/lib/sci/phoneseis.ts';
+import { butter, sosGain } from '../../src/lib/sci/dsp.ts';
 import { readSac, writeSac } from '../../src/lib/sci/seisio.ts';
 
 const EXP = {"rate": 62.5287632310863, "fs": 63, "n": 1890, "idx": [0, 100, 517, 1300, 1889], "U": {"x": [0.11953987480141222, 0.11850025513117593, 0.12136683985710174, 0.12096483105675784, 0.121397452814164], "y": [-0.0792502510547638, -0.07930776007891538, -0.08038770782060385, -0.07939143823577856, -0.07942763672266855], "z": [9.788738543987273, 9.790606431265363, 9.79135503206002, 9.788950670823654, 9.789038430262924]}, "hp05": {"pga_x": 0.18821175481036984, "ipga_x": 1328, "kdom_x": 101, "fbin_x": 3.10693359375, "pga_y": 0.09402199327589271, "ipga_y": 1327, "kdom_y": 390, "fbin_y": 11.9970703125, "pga_z": 0.31396409171738704, "ipga_z": 1327, "kdom_z": 103, "fbin_z": 3.16845703125, "vec": 0.37759877161246586, "hor": 0.21033553452763312, "samp": {"x": [-0.0015936784088834415, 0.0013339474969318629, -0.007417996265701385], "y": [0.0007407277924670739, -0.00021296119512930693, -0.0036416565282006617], "z": [0.0005928858797785609, 0.0013589344451217416, -0.01480047860777901]}}, "bp": {"pga_x": 0.17623975325345229, "ipga_x": 1328, "kdom_x": 101, "fbin_x": 3.10693359375, "pga_y": 0.08811118348844996, "ipga_y": 1328, "kdom_y": 390, "fbin_y": 11.9970703125, "pga_z": 0.29324844662572647, "ipga_z": 1328, "kdom_z": 103, "fbin_z": 3.16845703125, "vec": 0.3532968761975891, "hor": 0.19703814677004308, "samp": {"x": [-0.0010906521013731715, 0.0012140831508117358, -0.005147130427996499], "y": [0.001358668873673289, -0.00021990791676827868, -0.0021064909143115366], "z": [0.0007374001347143635, 0.0011178884645136858, -0.01074402000915861]}}};
@@ -32,4 +33,9 @@ export default async (check) => {
   { const a = analyse(r, { hp: 0.5, order: 2 }); const s = readSac(writeSac({ net: '', sta: 'PHONE', loc: '', cha: 'HNZ', start: Date.UTC(2026, 10, 9), fs: r.fs, data: a.comps.z }));
     check('phone-seis: SAC export round trip (float32)', s.fs === 63 && s.data.length === EXP.n && s.data.every((v, i) => v === Math.fround(a.comps.z[i]))); }
   check('phone-seis: shaking words scale with PGA', feel(0.0001).includes('not felt') && feel(0.32 / G0).includes('strong'));
+  // New with the building-frequency article (Minowa et al. 2023): zero-phase gain of a 1 Hz Butterworth highpass at 100 Hz, and the 20-bit step.
+  { const g = (N, hp, f) => sosGain(butter(N, hp, 'highpass', 100), f, 100) ** 2, bw = (N, hp, f) => 1 / (1 + (hp / f) ** (2 * N));
+    check('phone-seis: zero-phase gain of a 1 Hz order-2 highpass at 100 Hz is 0.710 at 1.25 Hz and 0.853 at 1.55 Hz (textbook Butterworth to 0.002)', Math.abs(g(2, 1, 1.25) - 0.710) < 0.001 && Math.abs(g(2, 1, 1.55) - 0.853) < 0.001 && Math.abs(g(2, 1, 1.25) - bw(2, 1, 1.25)) < 0.002 && Math.abs(g(2, 1, 1.55) - bw(2, 1, 1.55)) < 0.002);
+    check('phone-seis: order 4, 1 Hz: 0.857 at 1.25 Hz and 0.971 at 1.55 Hz', Math.abs(g(4, 1, 1.25) - 0.857) < 0.001 && Math.abs(g(4, 1, 1.55) - 0.971) < 0.001);
+    check('phone-seis: 5 G in 2^20 steps is 0.0047 cm/s2 (G0 = 9.80665)', Math.abs(5 * G0 * 100 / 2 ** 20 - 0.0047) < 0.00005); }
 };

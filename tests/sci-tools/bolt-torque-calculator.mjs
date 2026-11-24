@@ -24,4 +24,8 @@ export default async (check) => {
   check('bolt: property class 8.8 → 800 / 640 MPa', JSON.stringify(B.propertyClass('8.8')) === '{"Rm":800,"Re":640}' && JSON.stringify(B.propertyClass('10.9')) === '{"Rm":1000,"Re":900}' && B.propertyClass('x') === null);
   let threw = false; try { B.joint({ d: 10, P: 6, Sp: 600, frac: 0.75, E: 1, Em: 1, grip: 1, shank: 0, load: 0 }); } catch { threw = true; }
   check('bolt: rejects a pitch over half the diameter', threw);
+  // New with the blog article on Croccolo et al. (2025), Eng. Proc. 85: 52 (titanium M10 × 1.25 screws, 44.5 kN preload),
+  // with thread friction 0.12 and a 16 mm / 10.5 mm bearing face (the article's assumptions).
+  { const a = B.torqueFriction(44500, 10, 1.25, 0.12, 0.15, 16, 10.5), b = B.torqueFriction(1, 10, 1.25, 0.12, 0.6, 16, 10.5);
+    check('bolt: M10 × 1.25 to 44.5 kN at μb 0.15 needs 81.40 N·m (K 0.1829, bearing 54 %); 60 N·m at μb 0.6 gives 12.47 kN', near(a.T, 81402.248, 1e-7) && near(a.K, 0.1829264, 1e-6) && Math.abs(a.bearing / a.T - 0.5433) < 1e-4 && near(60000 / b.T, 12472.68, 1e-6)); }
 };

@@ -36,6 +36,22 @@ export default async (check) => {
   check(`likert: sort by agreement puts "${sorted[0].name}" first`, sorted[0].name === 'I feel part of a team' && sorted.every((x, i) => i === 0 || x.agree <= sorted[i - 1].agree + 1e-12));
   check('likert: sort by disagreement and by mean', sortItems(items, 'disagree')[0].disagree === Math.max(...items.map((i) => i.disagree)) && sortItems(items, 'mean')[0].mean === Math.max(...items.map((i) => i.mean)));
   check('likert: palettes for 4 to 7 points', [4, 5, 6, 7].every((k) => palette(k).length === k && new Set(palette(k)).size === k) && palette(5)[2] === '#c8c8c8');
+  // Blog article lung-cancer-nutrition-kap-item-scores-from-response-counts: the 25 published items of
+  // doi:10.3389/fnut.2026.1678612 (N = 598) must give back its three domain scores, and the item variances with
+  // its printed total SDs must give Cronbach's alpha for the analysed sample.
+  const KAP = [
+    { k: [[32, 309, 257], [68, 273, 257], [84, 253, 261], [185, 268, 145], [87, 279, 232], [133, 282, 183], [97, 288, 213], [69, 273, 256], [88, 301, 209], [113, 305, 180]], sum: 22.068561872909697, sd: 4.69, alpha: 0.8744283921721205 },
+    { k: [[12, 76, 113, 285, 112], [5, 21, 98, 267, 207], [5, 20, 89, 282, 202], [10, 26, 92, 285, 185], [3, 21, 111, 279, 184], [4, 31, 104, 278, 181], [7, 26, 132, 281, 152], [3, 21, 83, 299, 192], [1, 25, 126, 296, 150]], sum: 35.88795986622074, sd: 4.98, alpha: 0.8249894233762729 },
+    { k: [[6, 37, 138, 248, 169], [9, 47, 160, 219, 163], [3, 32, 125, 226, 212], [1, 34, 123, 221, 219], [10, 63, 158, 206, 161], [3, 64, 154, 222, 155]], sum: 23.282608695652172, sd: 4.12, alpha: 0.8172722943469264 },
+  ];
+  let kapOk = 0;
+  for (const d of KAP) {
+    const its = d.k.map((c, i) => summarise(`i${i}`, c));
+    const n = its.length, sv = its.reduce((s, x) => s + x.sd ** 2, 0);
+    const alpha = (n / (n - 1)) * (1 - sv / d.sd ** 2);
+    if (its.every((x) => x.n === 598) && Math.abs(its.reduce((s, x) => s + x.mean, 0) - d.sum) < 1e-12 && Math.abs(alpha - d.alpha) < 1e-12) kapOk++;
+  }
+  check('likert: three KAP domains give back 22.0686 / 35.8880 / 23.2826 and alphas 0.8744 / 0.8250 / 0.8173', kapOk === 3);
   const P = svgPainter(720, chartHeight(8, 5, 720));
   drawLikert(P, { w: 720, h: chartHeight(8, 5, 720), items, labels, ink: '#000', muted: '#555', grid: '#ddd' });
   const svg = P.toString();

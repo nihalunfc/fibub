@@ -59,4 +59,13 @@ export default async (check) => {
   }
   let threw = false; try { fitTwoBands(3, 17000, 40000); } catch { threw = true; }
   check('ts: impossible band ratio is refused', threw);
+  // Blog articles of 2026-11-24 (values from the papers' text). Ni2+ in Li2B4O7 glass: Dq 720.3, B 928.7, C/B 4.25 (Kindrat et al. 2026).
+  { const B = 928.7, L = readAt(8, (10 * 720.3) / B, 4.25), cm = (m, ir, k) => L.find((l) => l.mult === m && l.irrep === ir && l.k === k).E * B;
+    check('ts: Ni2+ borate glass levels 7203, 12168, 23372, 21408, 26241 cm-1', [[cm(3, 'T2', 1), 7203], [cm(3, 'T1', 1), 12168], [cm(3, 'T1', 2), 23372], [cm(1, 'T2', 1), 21408], [cm(1, 'T1', 1), 26241]].every(([a, b]) => Math.abs(a - b) < 1));
+    let lo = 300, hi = 3000; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2, M = readAt(8, 705.7 * 10 / m, 4.25); M.find((l) => l.mult === 3 && l.irrep === 'T1' && l.k === 2).E * m < 23364 ? (lo = m) : (hi = m); }
+    check('ts: Ni2+ glass, nu1 7057 with nu3 23364 gives B 943 cm-1', Math.abs(lo - 943.2) < 0.2); }
+  // Cr3+ in Ca3Mg2ZrGe3O12 (Yang 2024): excitation peaks 657 and 467 nm; 2E crosses 4T2 at Delta/B 20.74 for C/B 4.5.
+  { const f = fitTwoBands(3, 1e7 / 657, 1e7 / 467, 4.5); check('ts: Cr3+ garnet 657/467 nm gives B 622.9 cm-1, Dq/B 2.444', Math.abs(f.B - 622.86) < 0.05 && Math.abs(f.x / 10 - 2.4437) < 0.0005);
+    const gap = (x) => { const L = readAt(3, x, 4.5); return L.find((l) => l.mult === 2 && l.irrep === 'E').E - L.find((l) => l.mult === 4 && l.irrep === 'T2').E; };
+    check('ts: d3 2E crosses 4T2 at Delta/B 20.74 (C/B 4.5)', gap(20.7) > 0 && gap(20.78) < 0); }
 };

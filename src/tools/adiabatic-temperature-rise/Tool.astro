@@ -52,7 +52,8 @@ import DataFile from '../../components/DataFile.astro';
   import { num, sig, csv } from '../../lib/sci/num';
 
   const sg = (x: number, d = 4) => { const t = sig(x, d), m = t.replace('−', '-'); return /^-?[\d.]+$/.test(m) ? String(parseFloat(m)).replace('-', '−') : t; };
-  const grp = (x: number) => Math.round(x).toLocaleString('en');
+  // Small rises matter here (a 4.4 K rise is not 4 K), so keep two decimals below 10 K and whole numbers above.
+  const grp = (x: number) => (Math.abs(x) < 10 ? Number(x.toFixed(2)).toString() : Math.round(x).toLocaleString('en'));
   const root = document.querySelector<HTMLElement>('.adt')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const val = (c: string) => num(q<HTMLInputElement>(c).value);

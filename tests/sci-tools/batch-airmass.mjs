@@ -22,5 +22,17 @@ export default async (check) => {
   check(`airmass: hours with Kasten-Young X ≤ 2: 5.1289 h (astropy, 2 s grid) within 0.002 h (${p.hoursBelow.toFixed(4)})`, Math.abs(p.hoursBelow - 5.128888888888889) < 0.002 && p.samples.length === 13 && p.firstBelow && p.lastBelow);
   check(`airmass: Moon 144.776° from the target at its best time (astropy get_body, within 0.01°: ${p.moonAtBest.toFixed(4)})`, Math.abs(p.moonAtBest - 144.7763546309229) < 0.01 && p.moonMin <= p.moonAtBest + 1);
   { const q = M.plan(targets[3], site, new Date('2026-01-15T00:00:00Z'), new Date('2026-01-15T08:00:00Z'), { formula: 'secz', refraction: true, limit: 2, stepMin: 30 }); check('airmass: a target that stays down all night: never up, 0 hours', q.neverUp && q.hoursBelow === 0 && q.firstBelow === null && q.samples.every((s) => s.X === Infinity)); }
+  // NGC 1566 from Paranal on the night of 23 August 2025, the VLT/FORS2 campaign of Marin et al. (2026),
+  // A&A 709: A188 (CC BY 4.0), as used in /blog/discoveries/ngc-1566-spectropolarimetry-airmass-track-paranal-campaign/.
+  check('airmass: NGC 1566 from Paranal transits at 10:50:19 UT, 59.7676° up (airmass 1.1567), but reaches only 1.1866 before dawn', (() => {
+    const t = M.parseTargets('NGC 1566, 04 20 00.394, -54 56 16.60').targets[0];
+    const paranal = { lat: -24.6275, lon: -70.4044, elev: 2635 };
+    const p = M.plan(t, paranal, new Date('2025-08-23T23:43:00Z'), new Date('2025-08-24T09:44:00Z'), { formula: 'ky', refraction: true, limit: 1.3, stepMin: 60 });
+    return Math.abs(t.ra - 65.00164166666666) < 1e-9 && Math.abs(t.dec + 54.93794444444444) < 1e-9
+      && Math.abs(p.transit.getTime() - Date.parse('2025-08-24T10:50:19Z')) < 2000
+      && Math.abs(p.transitAlt - 59.7675669) < 1e-5 && Math.abs(M.airmass(p.transitAlt, 'ky') - 1.1567051) < 1e-6
+      && Math.abs(p.bestX - 1.1866487) < 1e-6 && Math.abs(p.hoursBelow - 1.2333750) < 1e-5
+      && Math.abs(p.moonAtBest - 102.1986027) < 1e-5;
+  })());
   check('airmass: separation: 90° between the pole and the equator, 1° steps along the equator', Math.abs(M.separation(0, 90, 123, 0) - 90) < 1e-12 && Math.abs(M.separation(10, 0, 11, 0) - 1) < 1e-12);
 };

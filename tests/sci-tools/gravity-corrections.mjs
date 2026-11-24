@@ -30,4 +30,11 @@ export default async (check) => {
   check('gravity: drift held flat outside the base readings', driftAt([{ t: 8, r: 10 }, { t: 10, r: 10.2 }], 7) === 0 && near(driftAt([{ t: 8, r: 10 }, { t: 10, r: 10.2 }], 12), 0.2, 1e-12) && near(driftAt([{ t: 8, r: 10 }, { t: 10, r: 10.2 }], 9), 0.1, 1e-12));
   { let m = ''; try { reduce(rows, { ...o, base: 'B1' }); } catch (e) { m = e.message; } check('gravity: missing base station refused', m.includes('No readings at the base station "B1"')); }
   check('gravity: hours parse', parseHours('08:15') === 8.25 && parseHours('9.5') === 9.5 && near(parseHours('10:20:30'), 10 + 20 / 60 + 30 / 3600, 1e-12));
+  // New with the article on the Jiugong Mountain calibration line (Liu et al. 2025, Front. Earth Sci. 13: 1429119): a
+  // simulated loop over the 326.9338 mGal line with a meter reading 3e-4 low and drifting 0.012 mGal/h gives 326.836 mGal
+  // with meter factor 1 and 326.934 mGal with 1.0003; the normal free-air fall over 1.2 m is 370.32 µGal.
+  { const L = [['FOOT', '08:00', 1000], ['TOP', '09:15', 673.179], ['FOOT', '10:30', 1000.03], ['TOP', '11:45', 673.209], ['FOOT', '13:00', 1000.06]].map(([name, t, reading]) => ({ name, t: parseHours(t), reading, lat: 29.5, h: 0 }));
+    const d = (cal) => { const R = reduce(L, { base: 'FOOT', gBase: 979500, cal, rho: 2670, ell: 'grs80', fa: 'simple' }); return { diff: 979500 - R.rows[1].gObs, rate: R.rate }; };
+    check('gravity: calibration-line loop gives 326.836 mGal at factor 1, 326.934 at 1.0003, drift 0.012 mGal/h', near(d(1).diff, 326.836, 5e-4) && near(d(1.0003).diff, 326.934, 5e-4) && near(d(1).rate, 0.012, 1e-6));
+    check('gravity: normal free-air fall over 1.2 m is 370.32 µGal', near(freeAir(1.2, 29.5) * 1000, 370.32, 1e-9)); }
 };

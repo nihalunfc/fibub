@@ -50,4 +50,8 @@ export default async (check) => {
   { const s = spectrogram(x, fs, 128, 64); const pts = [[0, 0], [2, 3], [15, 10], [64, 5], [40, 20]];
     check('seis: spectrogram (Hann 128, overlap 64, PSD) matches scipy.signal.spectrogram', s.t.length === EXP.sgram.nseg && s.t.every((v, i) => Math.abs(v - EXP.sgram.t[i]) < 1e-12) && pts.every(([k, j], i) => rel(s.S[j][k], EXP.sgram.S[i], 1e-9))); }
   { let e = ''; try { butter(4, [5, 60], 'bandpass', 100); } catch (er) { e = er.message; } check('seis: corner above Nyquist refused', e.includes('Nyquist')); }
+  // New with the Etna tremor article: the paper's zero-phase order-2 bandpass bands at 50 samples per second.
+  { const G = (f0, f1, f) => sosGain(butter(2, [f0, f1], 'bandpass', 50), f, 50) ** 2;
+    check('seis: zero-phase order-2 bandpass 0.5-2.5 Hz at 50 Hz sampling has gain 0.5 at both corners, 0.0119 at 0.2 Hz and under 1e-4 at 15 Hz', Math.abs(G(0.5, 2.5, 0.5) - 0.5) < 1e-3 && Math.abs(G(0.5, 2.5, 2.5) - 0.5) < 1e-3 && Math.abs(G(0.5, 2.5, 0.2) - 0.0119) < 5e-4 && G(0.5, 2.5, 15) < 1e-4);
+    check('seis: the narrow 0.6-1.4 Hz zero-phase band has gain 0.0016 at 0.2 Hz, and the 0.5-10 Hz band still passes 0.0639 at 15 Hz', Math.abs(G(0.6, 1.4, 0.2) - 0.0016) < 3e-4 && Math.abs(G(0.5, 10, 15) - 0.0639) < 2e-3); }
 };

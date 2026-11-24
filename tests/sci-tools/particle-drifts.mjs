@@ -13,6 +13,15 @@ export default async (check) => {
     check(`drifts: grad-B, charge ${s}: SciPy 5003.26 m/s, theory 5000`, near(r.measured[1], s * 5003.26, 2e-4) && near(r.theory[1], s * 5000, 1e-9)); }
   { const r = simulate({ ...base, scenario: 'curv', R0: 20 }); check('drifts: toroidal field curvature + grad-B, theory 15000 m/s, SciPy 14919, Boris within 0.5 %', near(r.theory[1], 15000, 1e-9) && near(r.measured[1], 14919, 5e-3) && Math.abs(r.ke1 / r.ke0 - 1) < 1e-12); }
   { const r = simulate({ ...base, scenario: 'grav', g: 1e9 }); check('drifts: gravity drift m g/(qB) = 10439.68 m/s (SciPy constants)', near(r.measured[1], -10439.68, 1e-4) && near(r.theory[1], -10439.685, 1e-6)); }
+  { // The Parker spiral at 1 au (article: solar-energetic-particle-drift-parker-spiral-guiding-centre).
+    // B from the paper's non-relativistic proton gyrofrequency 0.49 s^-1, R = 1 au, isotropic pitch angles.
+    const AU = 1.495978707e11, mp2 = 1.007276 * 1.66053906660e-27;
+    const par = { scenario: 'curv', q: e, m: mp2, B0: 5.115e-9, R0: AU, periods: 20, steps: 64 };
+    const iso = (W) => ({ Wperp: (2 * W) / 3, Wpar: W / 3 });
+    const a = simulate({ ...par, ...iso(10e6) });
+    check('drifts: Parker spiral at 1 au, isotropic 10 MeV proton, theory 17.42 km/s (paper: 17)', near(a.theory[1], 17420, 1e-3) && near(a.measured[1], a.theory[1], 1e-3));
+    const b = simulate({ ...par, ...iso(742.04e6) }); // gamma m v^2 / 2 for a 1000 MeV proton
+    check('drifts: same field, 1000 MeV proton by its relativistic effective energy, 1292.9 km/s (paper: 1300)', near(b.theory[1], 1.2929e6, 1e-3) && near(b.measured[1], b.theory[1], 1e-3)); }
   { // Boris rotation conserves speed exactly in a pure magnetic field.
     let x = [0, 0, 0], v = [3, 4, 0]; for (let i = 0; i < 1000; i++) ({ x, v } = borisStep(x, v, 1, 1, 0.3, () => ({ E: [0, 0, 0], B: [0, 0, 2] })));
     check('drifts: Boris keeps |v| exactly in a magnetic field', Math.abs(Math.hypot(...v) - 5) < 1e-12); }

@@ -20,4 +20,20 @@ export default async (check) => {
   check('projectile: best angle 40.57° gives 96.278 m (SciPy bounded search)', Math.abs(b.angle - 40.5696) < 0.02 && near(b.range, 96.2784149, 1e-5));
   check('projectile: best angle with no drag from the ground is 45°', Math.abs(bestAngle({ v0: 20, m: 1, Cd: 0, A: 0 }).angle - 45) < 0.01);
   check('projectile: terminal speed √(2mg/ρCdA) = 39.272 m/s', near(terminalSpeed(ball), 39.27178214, 1e-8));
+  freeThrow(check);
+};
+// Added with /blog/discoveries/basketball-free-throw-release-trajectory-check/: the group mean release
+// conditions of a made free throw (Wang et al. 2026) flown as a size-7 basketball with Cd 0.5.
+function freeThrow(check) {
+  const near = (a, b, rel) => Math.abs(a - b) <= rel * Math.abs(b);
+  const ball = { v0: 7.82, angle: 52.2, h0: 2.28, m: 0.6235, Cd: 0.5, A: Math.PI * 0.12065 ** 2 };
+  const r = simulate(ball, 4000);
+  check('free throw: range to the floor 6.6963 m, apex 4.1131 m, flight 1.53968 s', near(r.range, 6.69627132, 1e-6) && near(r.apex, 4.11311657, 1e-6) && near(r.tof, 1.53968097, 1e-6));
+  let x = NaN;
+  for (let i = 1; i < r.y.length; i++) if (r.vy[i] < 0 && (r.y[i - 1] - 3.048) * (r.y[i] - 3.048) <= 0) { const f = (3.048 - r.y[i - 1]) / (r.y[i] - r.y[i - 1]); x = r.x[i - 1] + f * (r.x[i] - r.x[i - 1]); break; }
+  check('free throw: crosses ring height (3.048 m) at 4.8082 m, 0.62 m past the ring', near(x, 4.80816730, 1e-5));
+  const slower = simulate({ ...ball, v0: 7.3326686 }, 4000);
+  let x2 = NaN;
+  for (let i = 1; i < slower.y.length; i++) if (slower.vy[i] < 0 && (slower.y[i - 1] - 3.048) * (slower.y[i] - 3.048) <= 0) { const f = (3.048 - slower.y[i - 1]) / (slower.y[i] - slower.y[i - 1]); x2 = slower.x[i - 1] + f * (slower.x[i] - slower.x[i - 1]); break; }
+  check('free throw: 7.3327 m/s drops it on the ring centre, 4.191 m', Math.abs(x2 - 4.191) < 2e-4);
 };

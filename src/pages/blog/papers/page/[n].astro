@@ -1,0 +1,12 @@
+---
+// The public record of research papers fibub has checked: page 2 onward.
+import PapersPage from '../../../../components/PapersPage.astro';
+import { paperRows, PAPERS_PER_PAGE } from '../../../../lib/papers';
+export async function getStaticPaths() {
+  const rows = await paperRows();
+  const pages = Math.ceil(rows.length / PAPERS_PER_PAGE);
+  return Array.from({ length: Math.max(0, pages - 1) }, (_, i) => ({ params: { n: String(i + 2) }, props: { rows, page: i + 2 } }));
+}
+const { rows, page } = Astro.props;
+---
+<PapersPage rows={rows} page={page} />

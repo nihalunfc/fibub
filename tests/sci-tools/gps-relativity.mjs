@@ -15,4 +15,10 @@ export default async (check) => {
   check('gps: orbital period of the GPS orbit about 11 h 58 min', near(G.satellite(26560e3).period / 3600, 11.967, 1e-3));
   check('gps: velocity term is half the gravity term in orbit (circular)', near(G.satellite(1e7).vel, G.satellite(1e7).grav / 2, 1e-15));
   check('gps: ground speed at the equator about 465 m/s, zero at the pole', near(G.ground(0, 0).v, 464.58, 1e-4) && G.ground(90, 0).v < 1e-10);
+  // New with the blog article jason-2-laser-time-transfer-gravitational-redshift-clock-rate (EPJ C 86, 682, 2026):
+  // Jason-2's orbit against a receiver at Grasse, France, and the eccentricity term for its almost circular orbit.
+  const j = G.shift(7716.5e3, 43.75, 1320);
+  check('gps: Jason-2 orbit +10.475 and −24.775 µs/day, net −14.300 µs/day (its clock loses time)', near(j.usPerDay.grav, 10.47492, 1e-5) && near(j.usPerDay.vel, -24.77487, 1e-5) && near(j.usPerDay.net, -14.29995, 1e-5) && j.net < 0);
+  check('gps: Jason-2 period 112.43 min, speed 7.187 km/s, eccentricity term 1.234 ns at e = 0.001', near(G.satellite(7716.5e3).period / 60, 112.43209, 1e-6) && near(G.satellite(7716.5e3).v, 7187.183, 1e-6) && near(G.eccAmp(7716.5e3, 0.001), 1.234149e-9, 1e-6));
+  check('gps: Jason-2 sits below the break-even radius for Grasse (about 9550 km)', G.balanceRadius(43.75, 1320) > 7716.5e3 && near(G.balanceRadius(43.75, 1320) / 1000, 9549.9, 1e-4));
 };

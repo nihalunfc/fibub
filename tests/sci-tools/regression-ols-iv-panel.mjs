@@ -50,6 +50,16 @@ export default async (check) => {
   check('regression: collinear columns named', /collinear.*educ2/.test(t(() => ols(y, X.map((r) => [...r, r[1] * 2]), [...nm, 'educ2'], { hasConst: true }))));
   check('regression: time-invariant regressor in FE explained', /educ does not change within an entity/.test(t(() => panelFE(y, y.map((_, i) => [N('educ')[i], N('exper')[i]]), ['educ', 'exper'], cols.person, cols.year))));
   check('regression: too few instruments explained', /at least as many instruments/.test(t(() => iv2sls(y, ex, y.map((_, i) => [N('educ')[i], N('union')[i]]), z, { exog: nmIv.exog, endog: ['educ', 'union'], instr: ['distance'] }))));
+  // New with the blog article green-food-resilience-panel-iv-mediation-recheck: a 20-row, 5-entity panel
+  // whose true within slope is 0.34, pinned with and without year effects.
+  const PANEL = `P1 2010 0.4 -0.26|P1 2011 0.54 -0.185|P1 2012 0.45 -0.188|P1 2013 0.61 -0.11|P2 2010 0.6 0.103|P2 2011 0.51 0.105|P2 2012 0.67 0.191|P2 2013 0.46 0.15|P3 2010 0.57 0.393|P3 2011 0.73 0.484|P3 2012 0.52 0.441|P3 2013 0.66 0.515|P4 2010 0.79 0.765|P4 2011 0.58 0.719|P4 2012 0.72 0.804|P4 2013 0.63 0.804|P5 2010 0.64 1.022|P5 2011 0.78 1.089|P5 2012 0.69 1.093|P5 2013 0.85 1.182`.split('|').map((l) => l.split(' '));
+  const pY = PANEL.map((r) => Number(r[3])), pX = PANEL.map((r) => [Number(r[2])]), pE = PANEL.map((r) => r[0]), pT = PANEL.map((r) => r[1]);
+  const two = panelFE(pY, pX, ['resilience'], pE, pT, { timeEffects: true });
+  const one = panelFE(pY, pX, ['resilience'], pE, pT);
+  check('regression: 20-row two-way FE slope 0.3346 (se 0.0122), within R2 0.9855 on 11 df',
+    Math.abs(two.coefs[0].b - 0.3346) < 5e-5 && Math.abs(two.coefs[0].se - 0.0122) < 5e-5 && Math.abs(two.r2 - 0.9855) < 5e-5 && two.df === 11 && two.effects.entities === 5 && two.effects.times === 4);
+  check('regression: entity effects only give 0.3955 (se 0.1103), within R2 0.4789',
+    Math.abs(one.coefs[0].b - 0.3955) < 5e-5 && Math.abs(one.coefs[0].se - 0.1103) < 5e-5 && Math.abs(one.r2 - 0.4789) < 5e-5);
   const I = inv([[4, 7], [2, 6]]);
   check('regression: 2 × 2 inverse', Math.abs(I[0][0] - 0.6) < 1e-15 && Math.abs(I[1][0] + 0.2) < 1e-15);
 };

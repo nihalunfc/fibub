@@ -20,6 +20,14 @@ export default async (check) => {
   check('pyramid: grouped median by hand', P.groupedMedian([0, 10, 20], [10, 10, Infinity], [10, 10, 0]).value === 10 && P.groupedMedian([0, 10], [10, Infinity], [1, 5]).open);
   check('pyramid: oldest first is reversed', P.parsePyramid(parseTable('Age,M,F\n10+,1,1\n5-9,2,2\n0-4,3,3')).male.join() === '3,2,1');
   check('pyramid: groups not at 15 and 65', P.pyramidStats(P.parsePyramid(parseTable('Age,Male,Female\n0-9,5,5\n10-19,5,5\n20+,5,5'))).dep === null);
+  // Blog article refugee-native-age-structure-dependency-ratios-aegean-1928: the twelve 1928 populations of
+  // doi:10.3390/genealogy10040114, as the shares 0-14 / 15-64 / 65+ it prints. A dependency ratio uses only the
+  // age totals, so the shares can stand in for counts.
+  const SH = [[30.7, 61.0, 8.4], [25.2, 67.1, 7.7], [32.1, 59.4, 8.5], [30.7, 61.3, 8.0], [24.6, 68.5, 7.0], [31.3, 60.6, 8.1], [31.3, 59.6, 9.1], [24.2, 64.7, 11.0], [32.7, 58.6, 8.7], [32.2, 62.0, 5.9], [27.3, 67.5, 5.2], [33.2, 60.8, 6.0]];
+  const DEP = [64.0983606557, 49.0312965723, 68.3501683502, 63.132137031, 46.1313868613, 65.0165016502, 67.7852348993, 54.4049459042, 70.6484641638, 61.4516129032, 48.1481481481, 64.4736842105];
+  const stats1928 = SH.map((sh) => P.pyramidStats(P.parsePyramid([['Age', 'Male', 'Female'], ['0-14', sh[0], sh[0]], ['15-64', sh[1], sh[1]], ['65+', sh[2], sh[2]]].map((r) => r.map(String)))));
+  check('pyramid: twelve 1928 Aegean dependency ratios, 64.10 down to 64.47', stats1928.every((s, i) => Math.abs(s.dep.total - DEP[i]) < 1e-8));
+  check('pyramid: Chios refugees, the oldest group, old-age ratio 17.00 and three-group median 34.90', Math.abs(stats1928[7].dep.old - 17.001545595054097) < 1e-9 && Math.abs(stats1928[7].median.value - 34.89953632148377) < 1e-9);
   const svg = svgPainter(600, 500);
   P.drawPyramid(svg, a, P.parsePyramid(parseTable(B), '2000'), { w: 600, h: 500, pct: true, ink: '#000', muted: '#555', grid: '#eee', bg: '#fff', male: '#0072B2', female: '#D55E00', over: '#000', title: 'T' });
   const s = svg.toString();

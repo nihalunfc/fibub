@@ -1,0 +1,7 @@
+---
+// The public record of research papers fibub has checked: page 1.
+import PapersPage from '../../../components/PapersPage.astro';
+import { paperRows } from '../../../lib/papers';
+const rows = await paperRows();
+---
+<PapersPage rows={rows} page={1} />

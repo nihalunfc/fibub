@@ -5,7 +5,7 @@ shelf: science
 code: T22
 section: research
 title: "Julian Date, MJD and sidereal time converter (with BJD and HJD)"
-summary: "Convert any moment between UTC, your local time, Julian Date, Modified Julian Date and Unix time, and see sidereal time, ΔT and light-time corrected BJD for a star."
+summary: "Convert any moment between UTC, your local time, Julian Date, Modified Julian Date and Unix time, and see sidereal time, TT − UTC and light-time corrected BJD for a star."
 status: live
 ads: true
 order: 70
@@ -40,7 +40,7 @@ To turn the time into a place in the sky, use the [[sky-coordinates|sky coordina
 ## What each result means
 
 - **Julian Date (UT):** days since noon on 1 January 4713 BC, on the UTC timescale.
-- **Julian Date (TT):** the same count on Terrestrial Time, the smooth timescale that ephemerides use. It runs about 69 seconds ahead of UTC, and that gap is shown as **ΔT**.
+- **Julian Date (TT):** the same count on Terrestrial Time, the smooth timescale that ephemerides use. It runs 69.184 seconds ahead of UTC today, and that gap is shown as **TT − UTC**. It is a whole number of leap seconds plus the fixed 32.184 seconds between TAI and TT, so it is exact rather than estimated; it changes only when a leap second is inserted, and none has been since the start of 2017.
 - **Greenwich and local sidereal time:** the right ascension that is crossing the meridian right now. An object is highest in the sky when the local sidereal time equals its RA.
 - **BJD (TDB):** the time the light would have reached the Solar System's centre of mass. This is the standard for exoplanet and pulsar timing.
 - **HJD:** the older correction to the Sun's centre. It is still used in many variable-star papers.
@@ -51,6 +51,6 @@ Suppose you observe Algol from Toronto at 22:00 local time on 7 November 2026. T
 
 ## Questions
 
-**How accurate is it?** Sidereal time and Julian Dates are exact to the second. The BJD correction uses the full planetary positions from astronomy-engine and matches professional tools to well under a second. That is plenty for amateur timing work, but check against a research tool for millisecond pulsar work.
+**How accurate is it?** Sidereal time and Julian Dates are exact to the second. The BJD correction uses the full planetary positions from astronomy-engine, and Terrestrial Time comes from the leap-second table rather than an estimate, so it matches professional tools to well under a second. That is plenty for amateur timing work, but check against a research tool for millisecond pulsar work.
 
 **Does it need the internet?** No. Once the page has loaded, it keeps working offline.

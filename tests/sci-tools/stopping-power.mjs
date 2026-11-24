@@ -20,4 +20,20 @@ export default async (check) => {
   const yy = straggled(b, R, sg, zz); let E = 0; for (let i = 1; i < zz.length; i++) E += (yy[i] + yy[i - 1]) / 2 * (zz[i] - zz[i - 1]);
   check('stopping: straggled Bragg curve deposits the beam energy (within 0.5 %) and peaks just before the range', Math.abs(E / 100 - 1) < 0.005 && near(sg, 0.012 * R, 1e-12) && (() => { let mi = 0; yy.forEach((v, i) => { if (v > yy[mi]) mi = i; }); return zz[mi] > R - 3 * sg && zz[mi] < R; })());
   check('stopping: no spread gives back the pristine curve', near(straggled(b, R, 0, [R / 2])[0], stopping(residual(100, R / 2, P.proton, M.water), P.proton, M.water), 0.01));
+  // Blog: proton-beam-range-water-r80-bethe-bloch-csda-geant4-cyclotron (measured R80 40.5, 157.7, 305.4 mm).
+  check('stopping: proton CSDA ranges in water at 70, 150 and 220 MeV are 40.74, 157.67 and 305.44 mm', near(range(70, P.proton, M.water), 4.074292632394072, 1e-6) && near(range(150, P.proton, M.water), 15.7670588578299, 1e-6) && near(range(220, P.proton, M.water), 30.543593334128627, 1e-6));
+  check('stopping: I = 78 eV for water lengthens the 220 MeV range to 306.94 mm', near(range(220, P.proton, { ...M.water, I: 78 }), 30.694313453565826, 1e-6));
+  // The straggled Bragg curve is averaged in residual range, so its peak and distal width no longer move
+  // with the depth grid (they did before: 299.7 to 306.1 mm of peak position at 220 MeV).
+  check('stopping: the straggled peak and 80-20 width barely move between depth grids', (() => {
+    const RR = range(220, P.proton, M.water), sg2 = straggleSigma(RR, P.proton), bc = braggCurve(220, P.proton, M.water);
+    const out = [300, 601, 1500].map((n) => {
+      const zs = []; for (let i = 0; i <= n; i++) zs.push((RR * 1.08 * i) / n);
+      const y = straggled(bc, RR, sg2, zs); let mi = 0; y.forEach((v, i) => { if (v > y[mi]) mi = i; });
+      let z80 = 0, z20 = 0; for (let i = mi; i < zs.length - 1; i++) { if (y[i] >= 0.8 * y[mi] && y[i + 1] < 0.8 * y[mi]) z80 = zs[i]; if (y[i] >= 0.2 * y[mi] && y[i + 1] < 0.2 * y[mi]) { z20 = zs[i]; break; } }
+      return { peak: zs[mi], height: y[mi], width: z20 - z80 };
+    });
+    const span = (k) => Math.max(...out.map((o) => o[k])) - Math.min(...out.map((o) => o[k]));
+    return span('peak') < 0.05 && span('width') < 0.1 && span('height') < 0.1 && near(out[1].peak, 30.24, 0.05);
+  })());
 };

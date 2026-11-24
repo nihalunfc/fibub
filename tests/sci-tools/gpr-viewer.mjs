@@ -39,4 +39,9 @@ export default async (check) => {
     check('gpr: made-up example: direct wave peak at 6 ns (Find time zero gives it), pipe hyperbola gives v = 0.1 m/ns, ε = 8.99', Math.abs(pk * ex.dt - 6) < 1e-9 && G.autoZero(ex) === pk && Math.abs(f.v - 0.1) < 1e-12 && Math.abs(f.depth - 0.7) < 1e-12 && Math.abs(f.eps - 8.98755) < 1e-4); }
   check('gpr: fewer than 3 points or an upside-down curve: no velocity', G.fitHyperbola([{ x: 0, t: 1 }, { x: 1, t: 2 }]) === null && G.fitHyperbola([{ x: 0, t: 10 }, { x: 1, t: 20 }, { x: 2, t: 10 }]).ok === false);
   check('gpr: depth = v t / 2', G.depthOf(40, 0.1) === 2);
+  // New with the GPR pipe article: a 0.3 m pipe, top 1.0 m down, soil 0.09 m/ns, picks every 1/60 m over ±0.8 m.
+  { const xs = Array.from({ length: 97 }, (_, i) => -0.8 + i / 60), cyl = (u) => (2 * (Math.hypot(u, 1.15) - 0.15)) / 0.09;
+    const f90 = G.fitHyperbola(xs.map((x) => ({ x, t: cyl(x) }))), s19 = Math.sin((19 * Math.PI) / 180), f19 = G.fitHyperbola(xs.map((x) => ({ x, t: cyl(x * s19) })));
+    check('gpr: a 0.3 m pipe fitted as a point gives 0.0959 m/ns (true 0.09) and depth 1.065 m', Math.abs(f90.v - 0.0959) < 5e-5 && Math.abs(f90.depth - 1.065) < 5e-4);
+    check('gpr: the same pipe crossed at 19° gives 0.296 m/ns; times sin 19° gives 0.0964', Math.abs(f19.v - 0.2962) < 5e-5 && Math.abs(f19.v * s19 - 0.0964) < 5e-5); }
 };

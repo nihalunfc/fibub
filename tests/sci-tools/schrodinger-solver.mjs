@@ -25,4 +25,13 @@ export default async (check) => {
   { const pot = S.potential('formula', { p1: 0, p2: 0, p3: 0 }, 0.5, -8, 8, '0.5*x^2'); const sol = S.solve(pot.V, -8, 8, 1000, 2, 0.5); check('schrodinger: formula 0.5*x^2 gives the harmonic levels', close(sol.states.map((s) => s.E), [0.49999202, 1.49996008], 2e-8)); }
   { let bad = ''; try { S.potential('formula', { p1: 0, p2: 0, p3: 0 }, 0.5, -1, 1, 'a*x'); } catch (e) { bad = e.message; } check('schrodinger: formula with an unknown name is refused', bad.includes('only use x')); }
   { const V = S.drawnV([0, 10, 0], 0, 2); check('schrodinger: drawn potential is joined by straight lines', V(0.5) === 5 && V(1) === 10 && V(2) === 0); }
+  // New with the qBounce article (Jenke et al. 2019, EPJ Web Conf. 219, 05003): neutrons bouncing on a mirror, lengths in µm and energies in peV.
+  { const HB = 1.054571817e-34, MN = 1.67492749804e-27, G = 9.80665, QE = 1.602176634e-19;
+    const c = HB ** 2 / (2 * MN) / 1e-12 / (QE * 1e-12), F = (MN * G * 1e-6) / (QE * 1e-12);
+    const z0 = Math.cbrt(HB ** 2 / (2 * MN * MN * G)) * 1e6;
+    check('schrodinger: neutron gravity length scale 5.8686 µm (paper: about 5.87)', Math.abs(z0 - 5.8686) < 5e-5);
+    const E = S.linearLevels(F, c, 3);
+    check('schrodinger: neutron gravity levels 1.40672, 2.45952, 3.32144 peV', close(E, [1.4067188095, 2.4595086393, 3.3214365237], 1e-6));
+    const ce = S.energies((x) => F * x, 0, 29.3, 1200, 3, c);
+    check('schrodinger: a hard ceiling at 29.3 µm raises them by 0.04 %, 1.84 %, 11.8 %', Math.abs((ce[0] / E[0] - 1) * 100 - 0.041) < 2e-3 && Math.abs((ce[1] / E[1] - 1) * 100 - 1.842) < 5e-3 && Math.abs((ce[2] / E[2] - 1) * 100 - 11.814) < 2e-2); }
 };

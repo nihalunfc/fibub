@@ -24,4 +24,12 @@ export default async (check) => {
   const d = dragAt(EXAMPLES.prop, p.k, p.W0, p.rho, p.speeds.minDrag.V);
   check('aircraft: parasite = induced drag at least-drag speed', rel(d.Dp, d.Di, 1e-9) && rel(d.D, p.W0 / p.LDmax, 1e-9));
   check('aircraft: too little thrust never lifts off', !takeoff({ ...EXAMPLES.jet, thrust: 1000 }).ok && takeoff({ ...EXAMPLES.jet, thrust: 1000 }).s === Infinity);
+  // From /blog/discoveries/fixed-wing-uav-drag-polar-from-minimum-drag-speed/: the 6 kg UAV of Panagiotopoulos et al.
+  // (2024), doi:10.3390/drones8060217, with the drag polar recovered from its least-drag speed of 16.73 m/s.
+  { const uav = { mass: 6, S: 0.49, span: 2.21, CD0: 0.018428, e: 0.85, CLmax: 1.724, engine: 'prop', power: 287.5, eta: 0.65, fuel: 0, alt: 0 };
+    const p = performance(uav), d = dragAt(uav, p.k, p.W0, p.rho, 15.86);
+    check('aircraft: 6 kg UAV polar gives least-drag 16.73 and least-power 12.71 m/s, L/D 19.0, stall 10.66 m/s, 49.4 W at cruise',
+      Math.abs(p.speeds.minDrag.V - 16.73) < 0.01 && Math.abs(p.speeds.minPower.V - 12.71) < 0.01
+      && Math.abs(p.LDmax - 19.0) < 0.05 && Math.abs(p.speeds.stall.V - 10.66) < 0.01 && Math.abs(d.P - 49.4) < 0.1
+      && Math.abs(p.speeds.minDrag.V / p.speeds.minPower.V - Math.pow(3, 0.25)) < 1e-9); }
 };

@@ -1,5 +1,6 @@
 // #937 Spectrometer calibration: peaks checked against scipy.signal.find_peaks + parabolic interpolation, the
 // polynomial fits against numpy.polyfit, and recovery of the made-up example's known pixel-to-wavelength map.
+import { propagate } from '../../src/lib/sci/uncertainty.ts';
 import { profile, smooth, findPeaks, polyfit, polyval, plainCoeffs, calibrate, autoMatch, LINE_SETS, exampleProfile, EXAMPLE_MAP } from '../../src/lib/sci/phspec.ts';
 export default async (check) => {
   const near = (a, b, tol) => Math.abs(a - b) <= tol;
@@ -30,4 +31,15 @@ export default async (check) => {
   let msg = ''; try { calibrate([10, 20], [400, 500], 2); } catch (e) { msg = e.message; }
   check('spec: too few lines message', msg.includes('at least 3 matched lines'));
   check('spec: line sets are rounded to 0.1 nm', Object.values(LINE_SETS).every((s) => s.lines.every((l) => Math.abs(l.nm * 10 - Math.round(l.nm * 10)) < 1e-9)));
+  // Pinned by the blog article on a short-wave infrared methane spectrometer
+  // (src/blog/discoveries/swir-spectrometer-wavelength-calibration-recheck.md).
+  check('spec: recovers a published pixel-to-wavelength line and its dispersion', (() => {
+    const xs = [20, 120, 220, 320, 420, 520, 620], nm = xs.map((x) => 1677.63199 - 0.13341 * x);
+    const c = calibrate(xs, nm, 1), p = plainCoeffs(c.fit);
+    return near(p[0], 1677.63199, 1e-9) && near(p[1], -0.13341, 1e-12) && near(c.dispersion, -0.13341, 1e-9) && c.rms < 1e-9;
+  })());
+  check('spec: the published uncertainty budget combines to 0.020616 nm (0.041231 at k = 2)', (() => {
+    const r = propagate((v) => v[0] + v[1] + v[2], [0.005, 0.012, 0.016].map((s, i) => ({ name: 'u' + i, value: 0, spread: s, dist: 'normal' })), 0.9545);
+    return near(r.uc, 0.020615528128088305, 1e-15) && near(r.U, 0.041231106638457665, 1e-12) && near(r.rows[2].share, 0.60235, 1e-4);
+  })());
 };

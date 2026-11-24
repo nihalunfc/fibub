@@ -57,4 +57,12 @@ export default async (check) => {
   check('randomise: one arm is refused', msg({ ...base, arms: ['A'], ratio: [1] }).includes('at least two arms'));
   check('randomise: too many allocations are refused', msg({ ...base, perStratum: 10000, factors: [{ name: 'S', levels: ['a', 'b', 'c'] }] }).includes('20,000'));
   let e = ''; try { parseRatio('2:1:1', 2); } catch (x) { e = x.message; } check('randomise: ratio with the wrong number of parts', e.includes('3 parts'));
+  // New with the GROWell article (Simmons et al. 2026): a block of 3 cannot hold a 1:1 ratio; 30 strata of 15 people in blocks of 4 stay within one person per stratum.
+  { let m = ''; try { makeList({ arms: ['Intervention', 'Control'], ratio: [1, 1], method: 'blocks', blockSizes: [3], perStratum: 12, factors: [], seed: 'x' }); } catch (x) { m = x.message; }
+    check('randomise: a block of 3 with a 1:1 ratio is refused', m.includes('Block size 3 does not work'));
+    check('randomise: blocks of 3 hold a 1:2 ratio (4 and 8 of 12)', makeList({ arms: ['A', 'B'], ratio: [1, 2], method: 'blocks', blockSizes: [3], perStratum: 12, factors: [], seed: 'x' }).summary[0].counts.join() === '4,8');
+    const f = [{ name: 'BMI', levels: ['a', 'b', 'c'] }, { name: 'Race', levels: ['a', 'b', 'c', 'd', 'e'] }, { name: 'Source', levels: ['clinic', 'social'] }];
+    const r = makeList({ arms: ['Intervention', 'Control'], ratio: [1, 1], method: 'blocks', blockSizes: [4], perStratum: 15, factors: f, seed: 'growell-demo' });
+    const tot = r.summary.reduce((a, t) => [a[0] + t.counts[0], a[1] + t.counts[1]], [0, 0]);
+    check('randomise: 30 strata of 15 in blocks of 4 give 224 against 226, no stratum off by more than one', r.summary.length === 30 && tot.join() === '224,226' && Math.max(...r.summary.map((t) => Math.abs(t.counts[0] - t.counts[1]))) === 1); }
 };

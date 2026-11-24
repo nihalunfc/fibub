@@ -31,5 +31,12 @@ export default async (check) => {
     const rng = Math.max(...ex) - Math.min(...ex), err = Math.max(...fd.c.map((v, i) => Math.abs(v - ex[i]))) / rng;
     check(`diffusion: ${c.kind}${c.sides ? c.sides : ''} finite differences agree with the erf solution within 0.02 %`, err < 2e-4 && fd.r <= 0.5);
   }
+  { // Olive pomace drying of Pyrka and Nenadis (2025), Foods 14(12): 2042, as used in the blog article
+    // olive-pomace-nir-drying-effective-diffusivity-arrhenius: the Arrhenius line through the paper's two ends.
+    const D0 = 5.846772330819198e-6, Q = 23752.416953169377;
+    check('diffusion: olive pomace Arrhenius gives 1.417e-9 at 70 C and 5.807e-9 at 140 C', near(arrhenius(D0, Q, 343.15), 1.417e-9, 1e-6) && near(arrhenius(D0, Q, 413.15), 5.807e-9, 1e-6));
+    const W = { kind: 'surface', C0: 1, Cs: 0 };
+    check('diffusion: olive pomace half-moisture depth after 30 min at 140 C is 3.084 mm', near(depthFor(W, arrhenius(D0, Q, 413.15), 1800, 0.5), 3.0839e-3, 1e-4));
+  }
   check('diffusion: bad targets give reasons', typeof depthFor(S, D, t, 1.2) === 'string' && typeof depthFor(C, D, t, 2) === 'string' && typeof timeFor(S, D, 1e-3, 0.1) === 'string');
 };
