@@ -22,5 +22,11 @@ export default async (check) => {
   check('cycles: every cycle closes (back to state 1 entropy 0)', [o, d, br, c, s1].every((r) => { const L = r.states[3], pts = CY.path(L, r.states[0], r.procs[3].kind, air, 300, r.states[0].v, 10); return Math.abs(pts[10].s) < 1e-9 && Math.abs(pts[10].T - 300) < 1e-9; }));
   check('cycles: isentropic path keeps entropy', (() => { const p = CY.path(o.states[0], o.states[1], 'isentropic', air, 300, o.states[0].v, 20); return p.every((x) => Math.abs(x.s) < 1e-9); })());
   check('cycles: closed-loop P dv by the trapezium rule equals the net work (Otto)', (() => { let W = 0; for (let i = 0; i < 4; i++) { const p = CY.path(o.states[i], o.states[(i + 1) % 4], o.procs[i].kind, air, 300, o.states[0].v, 4000); for (let j = 1; j < p.length; j++) W += 0.5 * (p[j].P + p[j - 1].P) * (p[j].v - p[j - 1].v); } return near(W, o.wnet, 1e-5); })());
+  // The lean hydrogen engine of the blog article lean-hydrogen-engine-air-standard-otto-efficiency-ceiling
+  // (Lou, Liu and Zhang 2025, Energies 18(7): 1656, doi:10.3390/en18071656): CR 9, 11, 13 from 313 K and 60 kPa.
+  { const h = CY.cycle('otto', { T1: 313, P1: 60e3, r: 13, Tmax: 2801 }, air);
+    check('cycles: the lean hydrogen case (r 13, peak 2801 K) gives 64.16 %, MEP 642.1 kPa, peak 6980 kPa', near(h.eta * 100, 64.15549, 1e-6) && near(h.mep / 1000, 642.0979, 1e-6) && near(Math.max(...h.states.map((s) => s.P)) / 1000, 6980.128, 1e-6));
+    check('cycles: Otto ceilings at r 9, 11 and 13 are 58.48, 61.68 and 64.16 %', [[9, 58.47564], [11, 61.67846], [13, 64.15549]].every(([r, e]) => near(CY.formula.otto(r, 1.4) * 100, e, 1e-6)));
+    check('cycles: the end-of-compression temperature is 873.2 K at r 13 and 753.8 K at r 9', near(h.states[1].T, 873.216, 1e-5) && near(CY.cycle('otto', { T1: 313, P1: 60e3, r: 9, Tmax: 2682 }, air).states[1].T, 753.774, 1e-5)); }
   check('cycles: impossible inputs give a message', !!CY.cycle('otto', { ...b, r: 8, Tmax: 500 }, air).problem && !!CY.cycle('diesel', { ...b, r: 10, rc: 12 }, air).problem && !!CY.cycle('brayton', { ...b, rp: 0.5, Tmax: 1400 }, air).problem && !!CY.cycle('stirling', { ...b, r: 4, Tmax: 900, regen: 2 }, air).problem);
 };

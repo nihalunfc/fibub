@@ -16,6 +16,13 @@ export default async (check) => {
   check('collision: 2D e = 0.6 at 20° vs SymPy', near(t.v1[0], 1.0305142460482177) && near(t.v1[1], 0.2831658087502217) && near(t.v2[0], 2.9389715079035645) && near(t.v2[1], 1.9336683824995566));
   check('collision: 2D impulse 4.19177 N·s along the line of centres, momentum kept', near(Math.hypot(t.J[0], t.J[1]), 4.1917659251269) && near(t.P1[0], t.P0[0]) && near(t.P1[1], t.P0[1]));
   { const k = collide2D(2, [3, 1], 1, [-1, 0.5], 20, 0, true); check('collision: 2D sticking together moves at P/M', near(k.v1[0], 5 / 3) && near(k.v1[1], 2.5 / 3) && near(k.v2[0], k.v1[0])); }
+  // Wheat grains on a steel plate, from the blog article wheat-grain-restitution-coefficient-impact-velocity-energy-loss
+  // (Marcinkiewicz, Slaski and Spadlo 2025, Applied Sciences 15(11): 6055, doi:10.3390/app15116055).
+  { const g = collide1D(38e-6, 4.5, 1000, 0, 0.6);
+    check('collision: a 38 mg grain at 4.5 m/s on a plate rebounds at 2.7 m/s, losing 64 % and 273.60 uN s of impulse', near(g.v1, -2.7, 1e-6) && near((g.lost / g.K0) * 100, 64, 1e-6) && near(g.J * 1e6, 273.6, 1e-6));
+    const gg = collide1D(38e-6, 4.5, 38e-6, 0, 0.5);
+    check('collision: the same grain on an identical still grain gives 1.125 and 3.375 m/s, losing 37.5 %', near(gg.v1, 1.125) && near(gg.v2, 3.375) && near((gg.lost / gg.K0) * 100, 37.5, 1e-12));
+    check('collision: a 50 cm drop and an 18 cm rebound give e = 0.6', near(fromMeasured(38e-6, Math.sqrt(2 * 9.80665 * 0.5), 1000, 0, -Math.sqrt(2 * 9.80665 * 0.18), 0).e, 0.6, 1e-9)); }
   const m = fromMeasured(0.5, 0.8, 0.5, 0, 0.1, 0.62);
   check('collision: e from measured speeds (0.62 − 0.1)/0.8 = 0.65, momentum change −10 %', near(m.e, 0.65) && near(m.dPrel, -0.1));
 };
