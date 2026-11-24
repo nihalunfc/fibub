@@ -28,4 +28,12 @@ export default async (check) => {
   check('rel: √s for a beam on a fixed target', near(sqrtSFixed(mp, mp + pb.T, mp), 4 * mp));
   check('rel: Källén function symmetric', kallen(1, 2, 3) === kallen(3, 1, 2) && kallen(4, 1, 1) === 0);
   check('rel: particle names and numbers', massOf('proton') === mp && massOf('π0') === mpi0 && massOf('Pi+') === mpi && massOf('105.658') === mmu && Number.isNaN(massOf('banana')) && massOf('γ') === 0);
+  // New with the COSY-ANKE eta-mass article (Goslawski 2012, EPJ Web Conf. 37, 03004): d + p -> 3He + eta at threshold.
+  { const md = 1875.612945, mP = 938.27208943, mHe = 2808.39161112, mEta = 547.873;
+    const t = threshold(md, mP, mHe + mEta);
+    check('rel: d + p → 3He + η threshold momentum 3141.6867 MeV/c (paper measured 3141.688 ± 0.021)', near(t.p, 3141.6867, 1e-8) && Math.abs(t.p - 3141.688) < 0.021);
+    const lever = (threshold(md, mP, mHe + mEta + 1e-3).p - threshold(md, mP, mHe + mEta - 1e-3).p) / 2e-3;
+    check('rel: dp/dm of the threshold is 4.166 and equals 1/(m_p p_d / ((m_He + m_η) E_d))', near(1 / lever, 0.24004, 1e-4) && near(1 / lever, (mP * t.p) / ((mHe + mEta) * t.E), 1e-6));
+    const S = 2 * mP * Math.hypot(md, 3167.93) + md * md + mP * mP;
+    check('rel: helion momentum 76.16 MeV/c at Q = 6.3 MeV equals the two-body decay momentum', near(twoBody(mHe + mEta + 6.3, mHe, mEta).p, 76.1559, 1e-6) && Math.abs(Math.sqrt(S) - mHe - mEta - 6.3) < 2e-3); }
 };

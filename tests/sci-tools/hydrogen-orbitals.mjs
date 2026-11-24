@@ -19,4 +19,10 @@ export default async (check) => {
   { const s = H.sample(3, 2, 0, true, 3000, 1); const rm = s.reduce((a, p) => a + Math.hypot(p.x, p.y, p.z), 0) / s.length, z2 = s.reduce((a, p) => a + p.z * p.z, 0) / s.length;
     check(`hydrogen: 3000 samples of 3d z² have ⟨r⟩ ≈ 10.5 and ⟨z²⟩ ≈ 66 (${rm.toFixed(2)}, ${z2.toFixed(1)})`, s.length === 3000 && Math.abs(rm - 10.5) < 0.3 && Math.abs(z2 - 66) < 4); }
   check('hydrogen: orbital names', H.orbitalName(3, 2, 2, true) === '3d x²−y²' && H.orbitalName(2, 1, -1, true) === '2p y' && H.orbitalName(1, 0, 0, true) === '1s' && H.orbitalName(4, 3, -2, true) === '4f xyz');
+  // New with the muonic helium article (Eskin et al. 2019, EPJ Web Conf. 222, 03009): reduced-mass scaling of the Z = 2 ground state.
+  { const mu = 206.768283, rel = (M) => (mu * M) / (mu + M);
+    const E = (M) => H.properties(1, 0, 2).E * rel(M) + H.properties(1, 0, 1).E * ((M + mu) / (M + mu + 1));
+    check('hydrogen: Z = 2 ground state with muon reduced mass and the electron added matches muonic 4He (−10956.319047 eV, 3e-8)', Math.abs(E(7294.29954142) + 10956.319047) < 3e-8 * 10956.3);
+    check('hydrogen: same for muonic 3He (−10858.496122 eV, 3e-8)', Math.abs(E(5495.88528) + 10858.496122) < 3e-8 * 10858.5);
+    check('hydrogen: muon mean radius for 4He is 197.39 fm', Math.abs(H.properties(1, 0, 2).rMean * H.BOHR_PM * 1000 / rel(7294.29954142) - 197.39) < 0.01); }
 };
