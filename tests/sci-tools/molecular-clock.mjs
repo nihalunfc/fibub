@@ -29,4 +29,12 @@ export default async (check) => {
   check('clock: Tajima counts and chi-square = Python/SciPy', t.m1 === 6 && t.m2 === 11 && near(t.chi2, 1.4705882352941178) && near(t.p, 0.22525290636064965, 1e-9));
   check('clock: chi-square tail = SciPy', near(M.chi2sf1(3.84), 0.05004352124870519, 1e-9) && near(M.chi2sf1(1), 0.31731050786291115, 1e-9));
   check('clock: JC undefined at p >= 0.75', Number.isNaN(M.distWithSE(4, 2, 1, 'jc').d));
+  // Blog article elaphe-dione-coi-divergence-dating: 44 differences in a 650-site COI fragment (37 transitions,
+  // 7 transversions) and the dating of a 6.7 % distance at 0.01 +/- 0.002 substitutions per site per Myr per lineage.
+  const barcode = ['p', 'jc', 'k2p'].map((m) => M.distWithSE(650, 37, 7, m).d);
+  check('clock: 650-site barcode p, JC and K2P distances', near(barcode[0], 0.06769230769230769) && near(barcode[1], 0.07094436651620079) && near(barcode[2], 0.07198941426906606));
+  const snake = M.divergenceTime(0.067, 0.009853547519829335, 0.01, 0.002);
+  check('clock: snake split dated at 3.35 Myr (95 % 1.72 to 4.98)', near(snake.value, 3.35) && Math.abs(snake.lo - 1.72) < 0.005 && Math.abs(snake.hi - 4.98) < 0.005);
+  const snakeRate = M.clockRate(0.067, 0.009853547519829335, 1.7, 0);
+  check('clock: rate implied by a 1.7 Myr calibration', near(snakeRate.value, 0.019705882352941177) && Math.abs(snakeRate.lo - 0.014026) < 1e-5 && Math.abs(snakeRate.hi - 0.025386) < 1e-5);
 };
