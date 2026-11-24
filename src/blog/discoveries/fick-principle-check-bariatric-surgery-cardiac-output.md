@@ -13,7 +13,7 @@ paper:
   year: 2025
   doi: "10.3390/app152111502"
   url: "https://www.mdpi.com/2076-3417/15/21/11502"
-  licence: "CC BY 4.0"
+  licence: "CC BY"
   reviewed: true
 ---
 

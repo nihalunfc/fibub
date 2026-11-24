@@ -28,4 +28,16 @@ export default async (check) => {
   near('mendel outcome count C(n+k-1, k-1)', outcomes(10, 4), 286, 1e-6);
   check('mendel ratio parsing', parseRatio('9:3:3:1').join() === '9,3,3,1' && parseRatio('9, 7').join() === '9,7');
   check('mendel presets cover the ratios asked for', ['3:1', '1:2:1', '9:3:3:1', '9:3:4', '12:3:1', '15:1', '1:1', '1:1:1:1'].every((id) => MENDEL_RATIOS.some((m) => m.id === id && m.ratio.join(':') === id)));
+
+  // Added with /blog/discoveries/tobrfv-tolerance-tomato-chromosome-8-segregation-chi-square/: the three published
+  // segregation tests of that paper, and the rival 2 : 1 ratio the same counts cannot reject.
+  const ph = chiGof([94, 34], [3, 1]), gn = chiGof([28, 56, 26], [1, 2, 1]), tl = chiGof([26, 56], [1, 2]);
+  near('mendel tomato 94:34 vs 3:1 chi2', ph.chi2, 0.16666666666666666, 1e-12);
+  near('mendel tomato 94:34 vs 3:1 p', ph.p, 0.6830913983096223, 1e-10);
+  near('mendel tomato 94:34 vs 3:1 exact p', exactGof([94, 34], [3, 1]), 0.6834180468007904, 1e-10);
+  near('mendel tomato 26:56 vs 1:2 p', tl.p, 0.7548, 1e-4);
+  near('mendel tomato 28:56:26 vs 1:2:1 chi2 and p', gn.chi2, 0.10909090909090909, 1e-12);
+  near('mendel tomato 28:56:26 vs 1:2:1 p', gn.p, 0.9469154662674887, 1e-10);
+  near('mendel tomato: the same counts cannot reject 2 : 1 either', chiGof([94, 34], [2, 1]).p, 0.10416255883047731, 1e-10);
+  check('mendel tomato: 13 : 3 and 9 : 7 are rejected at 5 %', chiGof([94, 34], [13, 3]).p < 0.05 && chiGof([94, 34], [9, 7]).p < 0.001);
 };

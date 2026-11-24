@@ -41,10 +41,10 @@ const curve = (r) => counts.map((a) => key(a, r === Infinity ? 0 : (a / F) * M /
 const fig1 = chart({
   title: 'Keyness against how often a word appears', xLabel: 'Times the word appears in the 31,124-word corpus', yLabel: 'Log-likelihood G²',
   series: [
-    { name: 'absent from the other corpus', kind: 'line', x: counts, y: curve(Infinity) },
-    { name: '3× rarer there', kind: 'line', x: counts, y: curve(3), colour: 'var(--c-tools)' },
-    { name: 'same rate there', kind: 'line', x: counts, y: curve(1), colour: 'var(--muted)', dash: '5 4' },
-    { name: "the paper's shared words", kind: 'dots', x: shared.map((s) => s.a), y: shared.map((s) => s.g), size: 3.4, colour: 'var(--ink)' },
+    { name: 'absent elsewhere', kind: 'line', x: counts, y: curve(Infinity) },
+    { name: '3× rarer', kind: 'line', x: counts, y: curve(3), colour: 'var(--c-tools)' },
+    { name: 'same rate', kind: 'line', x: counts, y: curve(1), colour: 'var(--muted)', dash: '5 4' },
+    { name: 'shared words', kind: 'dots', x: shared.map((s) => s.a), y: shared.map((s) => s.g), size: 3.4, colour: 'var(--ink)' },
   ],
   xDomain: [0, 92], yDomain: [0, 130],
   hlines: [{ y: CUT, text: `cut-off 6.63 (p < 0.01)` }],
