@@ -18,6 +18,16 @@ export default async (check) => {
   { const f = fos(S.S1, { xc: 8, yc: 20, R: 20 }); check('slope-stability: Bishop above ordinary for c-φ soil', f.bishop > f.ordinary && f.iterations < 30); }
   const r = search(S.S2, { x0: -8, x1: 17.3, y0: 11, y1: 25, nx: 11, ny: 11, yLow: -5, nR: 8 });
   check(`slope-stability: grid search minimum near scipy's 1.18178 (${r.best.f.bishop.toFixed(5)})`, r.best.f.bishop >= 1.18178 - 1e-4 && r.best.f.bishop < 1.18178 * 1.005 && !r.onEdge);
+  // Pekanbaru cut slopes (Misriani et al. 2025, doi:10.1051/e3sconf/202567701004, CC BY): soft clayey silt over
+  // stiff clay 3 m below the crest, dry, saturated unit weights. The stiff layer is what keeps the steep slope up
+  // (blog: slope-geometry-factor-of-safety-limit-equilibrium).
+  { const L2 = { c: 12.72, phi: 8.21, gamma: 16.6 }, L3 = { c: 27.31, phi: 10.618, gamma: 16.7 };
+    const crit = (H, beta, soil) => { const xc = H / Math.tan((beta * Math.PI) / 180);
+      return search({ H, beta, ...soil, water: { kind: 'none' } }, { x0: -1.5 * H, x1: xc + 1.5 * H, y0: 0.8 * H, y1: 4 * H, nx: 13, ny: 13, yLow: -1.0 * H, nR: 8 }, 40).best.f; };
+    const a = crit(3.12, 70, { top: L2, bottom: L3, yi: 0.12 }), b = crit(4.8, 84, { top: L2, bottom: L3, yi: 1.8 });
+    const a1 = crit(3.12, 70, { top: L2 }), b1 = crit(4.8, 84, { top: L2 });
+    check('slope-stability: Pekanbaru slopes with stiff clay at 3 m give Bishop 1.400 and 1.197', Math.abs(a.bishop - 1.40032) < 5e-4 && Math.abs(b.bishop - 1.19739) < 5e-4);
+    check('slope-stability: the same slopes in soft silt alone give 1.347 and 0.786', Math.abs(a1.bishop - 1.34714) < 5e-4 && Math.abs(b1.bishop - 0.78590) < 5e-4); }
   check('slope-stability: geometry helpers', ground(S.S1, -1) === 0 && Math.abs(ground(S.S1, 5) - 5 * Math.tan(Math.PI / 6)) < 1e-12 && ground(S.S1, 30) === 10 && piezo(S.S4, 30) === 6 && piezo(S.S4, -5) === 0);
   check('slope-stability: a circle above the ground does not cut it', cut(S.S1, { xc: 5, yc: 30, R: 5 }) === null);
 };

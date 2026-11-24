@@ -3,7 +3,7 @@
 // p-values and the lag scan were checked against numpy, pandas (groupby, Series.shift/corr) and scipy
 // (stats.pearsonr, stats.t) on the made-up example, both on the shared age grid and on a wider grid with gaps
 // (all agree to 1e-9; the bootstrap matches numpy.nanpercentile).
-import { parseRecords, cleanRecord, autoGrid, gridAges, interpolate, zscore, stack, bootIndex, bootstrap, pearson, lag1, correlate, lagScan, exampleRecords, toLong, medianSpacing } from '../../src/lib/sci/proxystack.ts';
+import { parseRecords, cleanRecord, autoGrid, gridAges, interpolate, zscore, stack, bootIndex, bootstrap, pearson, lag1, correlate, lagScan, exampleRecords, toLong, medianSpacing, rng } from '../../src/lib/sci/proxystack.ts';
 
 export default async (check) => {
   const near = (a, b, t = 1e-6) => Math.abs(a - b) <= t * Math.max(1, Math.abs(b));
@@ -43,6 +43,21 @@ export default async (check) => {
   const c01 = correlate(z[0], z[1]), c23 = correlate(z[2], z[3]);
   check('proxy: example r, n_eff and p (scipy)', near(c01.r, 0.926266, 1e-5) && c01.n === 53 && near(c01.neff, 15.8426, 1e-5) && near(c01.p, 3.0601122158024934e-07, 1e-6) && near(c23.neff, 15.598, 1e-5) && near(c23.p, 0.01511581621789084, 1e-6));
   check('proxy: autocorrelation makes p larger', c23.p > c23.pNaive);
+  // Decadal ice-core style pair (blog: ice-core-lead-record-lag-scan-synchronisation, after Gabrielli et al. 2026,
+  // doi:10.5194/cp-22-1037-2026, CC BY): simulated from the seeded rng, so the autocorrelation correction and the
+  // lag scan stay pinned. 194 decades, r = 0.4443, n_eff 71.3 of 194, corrected p 1.00e-4 against a naive 8.6e-11.
+  { const T0 = -175, T1 = 1755, ages = []; for (let t = T0; t <= T1; t += 10) ages.push(t);
+    const bump = (t, c, w) => Math.exp(-0.5 * ((t - c) / w) ** 2);
+    const red = (n, sd, seed, phi) => { const g = rng(seed), out = []; let x = 0;
+      for (let i = 0; i < n; i++) { let u = 0; while (u === 0) u = g(); const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * g()); x = phi * x + Math.sqrt(1 - phi * phi) * z; out.push(x * sd); } return out; };
+    const sh = red(ages.length, 1, 4242, 0.86);
+    const base = ages.map((t, i) => bump(t, 50, 170) + 0.8 * bump(t, 1250, 200) + 1.4 * bump(t, 1700, 120) + sh[i]);
+    const nA = red(ages.length, 1.6, 20261, 0.5), nB = red(ages.length, 1.6, 77003, 0.5);
+    const zA = zscore(base.map((v, i) => +(v + nA[i]).toFixed(3)), ages, T0, T1).z;
+    const zB = zscore(base.map((v, i) => +(v + nB[i]).toFixed(3)), ages, T0, T1).z;
+    const c = correlate(zA, zB), pk = lagScan(zA, zB, 12).reduce((m, x) => (x.r > m.r ? x : m));
+    check('proxy: simulated decadal ice-core pair gives r 0.4443 with n_eff 71.3 of 194', near(c.r, 0.4442987, 1e-6) && c.n === 194 && near(c.r1a, 0.6751279, 1e-6) && near(c.r1b, 0.6848710, 1e-6) && near(c.neff, 71.321735, 1e-5));
+    check('proxy: its corrected p is 1.00e-4 where the naive p is 8.6e-11, and the lag peak is one decade off', near(c.p, 1.0001896e-4, 1e-6) && near(c.pNaive, 8.6143983e-11, 1e-6) && pk.lag === -1 && near(pk.r, 0.4846538, 1e-6)); }
   const scan = lagScan(z[0], z[2], 6), best = scan.reduce((m, x) => (x.r > m.r ? x : m));
   check('proxy: lag scan finds the 150-year offset between 100 and 200 years', best.lag === 1 && near(best.r, 0.887, 2e-3) && near(scan[8].r, 0.844, 2e-3));
 };
