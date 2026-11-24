@@ -23,7 +23,7 @@
     <h2>Heat flags</h2>
     <div class="hx-wrap"><table><thead><tr><th>Flag</th><th>WBGT °C</th><th>WBGT °F</th></tr></thead>
     <tbody><tr data-f="white"><td>White</td><td>under 27.8</td><td>under 82</td></tr><tr data-f="green"><td>Green</td><td>27.8 to 29.4</td><td>82 to 85</td></tr><tr data-f="yellow"><td>Yellow</td><td>29.4 to 31.1</td><td>85 to 88</td></tr><tr data-f="red"><td>Red</td><td>31.1 to 32.2</td><td>88 to 90</td></tr><tr data-f="black"><td>Black</td><td>32.2 and over</td><td>90 and over</td></tr></tbody></table></div>
-    <p class="hx-fine">Bands follow the US Army heat categories (TB MED 507); the work/rest and water table is in that document. Check the official source. Planning only, not medical advice; follow your local workplace rules. The estimate is for shade and does not include sun. Nothing you type leaves this page.</p>
+    <p class="hx-fine">Bands follow the US Army heat categories (TB MED 507); the work/rest and water table is in that document. Check the official source. Planning only, not medical advice; follow your local workplace rules. The estimate assumes moderate sun and light wind, so it over-reads in real shade or moving air. Nothing you type leaves this page.</p>
   </section>
 </div>
 
@@ -79,7 +79,7 @@
       else if (f('where').value === 'sun') { w = wbgtOutdoor(tnw, tg, ta); work = `Working (sun): 0.7 x ${r1(tnw)} + 0.2 x ${r1(tg)} + 0.1 x ${r1(ta)} = ${r1(w)} °C.`; }
       else { w = wbgtIndoor(tnw, tg); work = `Working (shade): 0.7 x ${r1(tnw)} + 0.3 x ${r1(tg)} = ${r1(w)} °C.`; }
     } else if (isNaN(ta) || !(rh >= 0 && rh <= 100)) err = 'Enter an air temperature and a humidity from 0 to 100.';
-    else { w = wbgtEstimate(ta, rh); work = `Working: e = ${vapourPressure(ta, rh).toFixed(2)} hPa; 0.567 x ${r1(ta)} + 0.393 x e + 3.94 = ${r1(w)} °C. Shade estimate, does not include sun.`; }
+    else { w = wbgtEstimate(ta, rh); work = `Working: e = ${vapourPressure(ta, rh).toFixed(2)} hPa; 0.567 x ${r1(ta)} + 0.393 x e + 3.94 = ${r1(w)} °C. Assumes moderate sun and light wind; over-reads in real shade or moving air.`; }
     q('.hx-err').hidden = !err; q('.hx-err').textContent = err; q('.hx-res').hidden = !!err;
     root.querySelectorAll('tr[data-f]').forEach((r) => r.classList.remove('on'));
     if (err) return;

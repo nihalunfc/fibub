@@ -15,7 +15,7 @@ updated: 2026-11-16
 related: [wind-chill-heat-index, uv-index-estimator, temperature-scales]
 sources:
   - "WBGT weights: outdoor with sun 0.7 Tnw + 0.2 Tg + 0.1 Ta; indoor or shade 0.7 Tnw + 0.3 Tg (ISO 7243; NIOSH Criteria for a Recommended Standard: Occupational Exposure to Heat and Hot Environments, 2016) (checked 2026-11-16)."
-  - "Shade estimate: WBGT = 0.567 Ta + 0.393 e + 3.94, with e = RH/100 x 6.105 x exp(17.27 Ta / (237.7 + Ta)) hPa, the approximation published by the Australian Bureau of Meteorology (checked 2026-11-16)."
+  - "Outdoor estimate: WBGT = 0.567 Ta + 0.393 e + 3.94, with e = RH/100 x 6.105 x exp(17.27 Ta / (237.7 + Ta)) hPa, the approximation published by the Australian Bureau of Meteorology (checked 2026-11-16)."
   - "Wet-bulb temperature: Stull, R. (2011), Wet-bulb temperature from relative humidity and air temperature, J. Appl. Meteorol. Climatol. 50, 2267-2269 (checked 2026-11-16)."
   - "Flag bands in degrees F (82, 85, 88, 90) follow the US Army heat categories in TB MED 507. The work/rest and water table is in that document and is not copied here: check the official source."
 flow:
@@ -42,7 +42,7 @@ It also shows the wet-bulb temperature and a heat flag. For planning only, not m
 
 - **Outdoor with sun**: 0.7 Tnw + 0.2 Tg + 0.1 Ta.
 - **Indoors or shade**: 0.7 Tnw + 0.3 Tg.
-- **Estimate**: uses only air temperature and humidity, so it does not include sun. Real sun adds to the true WBGT.
+- **Estimate**: uses only air temperature and humidity. The formula comes from the Australian Bureau of Meteorology, which publishes it for moderately high radiation in light wind, so it already carries a sun load: in real shade or moving air it reads several degrees high. Check the official source.
 - **Flag**: white under 27.8 °C (82 °F), green to 29.4 (85), yellow to 31.1 (88), red to 32.2 (90), black at 32.2 °C or more.
 
 ## Worked example
@@ -53,6 +53,6 @@ Tnw 25 °C, Tg 40 °C, Ta 32 °C in sun: 0.7 x 25 + 0.2 x 40 + 0.1 x 32 = 17.5 +
 
 **What do the flags mean?** They are the US Army heat categories; the matching work/rest and water table is in TB MED 507, so check the official source.
 
-**Is the estimate accurate?** It is a shade approximation. Use real readings for safety decisions.
+**Is the estimate accurate?** It assumes moderate sun and light wind, so it over-reads in shade or a breeze (a shaded, fan-cooled site can read 4 to 5 °C high) and can under-read in full sun with a hot surface. Use real readings for safety decisions.
 
 **Is anything stored?** No, it all runs on this page.

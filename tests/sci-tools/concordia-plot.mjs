@@ -33,4 +33,26 @@ export default async (check) => {
   { const p = parseAnalyses('label,207/235,2s,206/238,2s,rho\nZ1\t4.9091\t0.0589\t0.31627\t0.00316\t0.85\n4.6 0.05 0.3 0.003\nbad line'); check('concordia: analyses read with labels, optional rho and a header', p.rows.length === 2 && p.rows[0].label === 'Z1' && p.rows[1].label === '#2' && p.rows[1].v.length === 4 && p.bad.length === 1 && p.bad[0] === 4); }
   { let e = ''; try { discordia(dis.slice(0, 2)); } catch (er) { e = er.message; } check('concordia: discordia with two analyses refused', e.includes('at least three')); }
   check('concordia: decay constants', L8 === 1.55125e-10 && L5 === 9.8485e-10);
+
+  // New with src/blog/discoveries/leon-eclogite-zircon-concordia-age-mswd.md: Tual et al. (2025), Eur. J. Mineral.
+  // 37: 639 (CC BY) report a concordia age of 385.7 Ma with a concordance MSWD of 8.7 but a weighted mean
+  // 206Pb/238U MSWD of 1.14. These twelve analyses are simulated by fibub, not the paper's data: they sit on
+  // concordia at 385.7 Ma with the weighted mean's MSWD tuned to 1.14, and a 0.793 % systematic excess in
+  // 207Pb/235U reproduces the concordance MSWD of 8.7 while leaving the weighted mean untouched.
+  {
+    const [x0, y0] = cW(385.7e6);
+    check(`concordia: 385.7 Ma sits at 207/235 = 0.46207 and 206/238 = 0.061658 (${x0.toFixed(5)}, ${y0.toFixed(6)})`, rel(x0, 0.46207, 2e-5) && rel(y0, 0.061658, 2e-5) && rel(x0 / y0 / U, 0.054377, 2e-5) && rel(cTW(385.7e6, U)[0], 16.219, 1e-4));
+    const X = [0.46256, 0.46882, 0.45633, 0.46092, 0.46093, 0.46328, 0.45606, 0.46402, 0.46286, 0.46871, 0.46300, 0.45741];
+    const Y = [0.061665, 0.062131, 0.060684, 0.062420, 0.061577, 0.061763, 0.062191, 0.061182, 0.061550, 0.061650, 0.061587, 0.061494];
+    const set = (b) => X.map((x, i) => ({ x: x * (1 + b), sx: (x * (1 + b) * 0.020) / 2, y: Y[i], sy: (Y[i] * 0.014) / 2, rho: 0.5 }));
+    const c0 = concordiaAge(set(0)), w0 = weightedMean68(set(0));
+    check(`concordia: the simulated group's weighted mean is 385.66 Ma with MSWD 1.14 (${(w0.t / 1e6).toFixed(2)}, ${w0.mswd.toFixed(3)})`, Math.abs(w0.t / 1e6 - 385.66) < 0.01 && Math.abs(w0.mswd - 1.14) < 0.005 && Math.abs((2 * w0.s) / 1e6 - 1.51) < 0.01);
+    check(`concordia: its concordia age is 385.64 Ma and it sits on the curve (MSWD of concordance ${c0.mswdConc.toFixed(4)})`, Math.abs(c0.t / 1e6 - 385.64) < 0.01 && c0.mswdConc < 0.01 && c0.pConc > 0.9);
+    const c1 = concordiaAge(set(0.00793)), w1 = weightedMean68(set(0.00793));
+    check(`concordia: a 0.793 % excess in 207/235 gives the paper's concordance MSWD of 8.70 (${c1.mswdConc.toFixed(2)})`, Math.abs(c1.mswdConc - 8.70) < 0.02 && c1.pConc < 0.01);
+    check('concordia: that excess leaves the weighted mean 206/238 age and its MSWD unchanged', Math.abs(w1.t - w0.t) < 1 && Math.abs(w1.mswd - w0.mswd) < 1e-9);
+    const g = ages(set(0.00793)[0], U);
+    check(`concordia: the biased analyses read 385.7, 388.6 and 405.5 Ma with 4.9 % discordance (${(g.t68 / 1e6).toFixed(1)}, ${(g.t75 / 1e6).toFixed(1)}, ${(g.t76 / 1e6).toFixed(1)}, ${g.disc.toFixed(1)} %)`, Math.abs(g.t68 / 1e6 - 385.7) < 0.1 && Math.abs(g.t75 / 1e6 - 388.6) < 0.1 && Math.abs(g.t76 / 1e6 - 405.5) < 0.3 && Math.abs(g.disc - 4.86) < 0.05);
+    check('concordia: expanding the concordia age error by sqrt(MSWD) at 8.70 multiplies it by 2.95', Math.abs(Math.sqrt(c1.mswdConc) - 2.95) < 0.01 && Math.abs(((2 * c1.st) / 1e6) * Math.sqrt(c1.mswdConc) - 4.20) < 0.02);
+  }
 };
