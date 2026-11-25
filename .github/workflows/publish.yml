@@ -1,0 +1,49 @@
+# Each morning, put out the Blog articles scheduled for today (`published: YYYY-MM-DD` in their front
+# matter; ArticlePipeline01 queues research articles this way). Builds leave out articles whose day has
+# not come, so a new build is all it takes: this pushes a one-line release note to main, Cloudflare
+# builds and deploys it, and the new articles are sent to IndexNow. Also refreshes /news-sitemap.xml,
+# which lists the last two days of research articles. Days with nothing scheduled push nothing (no build).
+name: Publish scheduled articles
+on:
+  schedule:
+    - cron: '0 11 * * *' # 11:00 UTC: 6 AM in Toronto, 4:30 PM in India
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Anything due today?
+        id: due
+        run: |
+          day=$(date -u +%F)
+          list=$(grep -rlE "^published:[[:space:]]*\"?$day" src/blog --include='*.md' || true)
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+          if [ -z "$list" ]; then echo "Nothing scheduled for $day."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "$list"
+          echo "go=yes" >> "$GITHUB_OUTPUT"
+          mkdir -p data/publish
+          { echo "$day"; echo "$list"; } > data/publish/last.txt
+      - name: Start the deploy
+        if: steps.due.outputs.go == 'yes'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add data/publish/last.txt
+          git commit -m "Publish the articles scheduled for ${{ steps.due.outputs.day }}"
+          for i in 1 2 3 4; do git push && break; git pull --rebase; sleep $((i * 10)); done
+      # Cloudflare builds and deploys main on that push; give it time so the pages are live first.
+      - name: Send the new articles to IndexNow
+        if: steps.due.outputs.go == 'yes'
+        run: |
+          sleep 420
+          node scripts/indexnow.mjs --published "${{ steps.due.outputs.day }}"

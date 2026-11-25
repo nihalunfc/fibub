@@ -5,7 +5,9 @@
 //
 // Usage: node scripts/indexnow.mjs <base-sha> <head-sha>   (run by .github/workflows/indexnow.yml)
 //        node scripts/indexnow.mjs --all                    (every live tool, article, course lesson and hub page)
+//        node scripts/indexnow.mjs --published YYYY-MM-DD  (the Blog articles whose `published` day it is; run by publish.yml)
 //        add --dry to print the list without sending it.
+// Scheduled articles (a `published` day after today) are left out until their day.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
@@ -14,7 +16,11 @@ const KEY = 'b544da555d964ccdfafaadfab66a850b'; // the same key is served at htt
 const args = process.argv.slice(2);
 const dry = args.includes('--dry');
 const all = args.includes('--all');
-const [base, head] = args.filter((a) => !a.startsWith('--'));
+const pubDay = args.includes('--published') ? args[args.indexOf('--published') + 1] : null;
+const [base, head] = args.filter((a) => !a.startsWith('--') && a !== pubDay);
+const today = new Date().toISOString().slice(0, 10);
+const blogFiles = () => readdirSync('src/blog', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/blog/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/blog/${d.name}/${f}`));
+const publishedDay = (f) => (readFileSync(f, 'utf8').match(/^published:\s*"?(\d{4}-\d{2}-\d{2})/m) ?? [])[1];
 
 const field = (src, key) => (src.match(new RegExp(`^${key}:[ \\t]*"?([^"\\n]*)"?`, 'm')) ?? [])[1]?.trim();
 function toolUrl(id) {
@@ -27,7 +33,8 @@ function toolUrl(id) {
 
 let changed;
 const courseFiles = () => existsSync('src/courses') ? readdirSync('src/courses', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/courses/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/courses/${d.name}/${f}`)) : [];
-if (all) changed = [...courseFiles(), ...readdirSync('src/tools').map((id) => `src/tools/${id}/guide.md`), ...readdirSync('src/blog', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/blog/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/blog/${d.name}/${f}`))];
+if (pubDay) changed = blogFiles().filter((f) => publishedDay(f) === pubDay);
+else if (all) changed = [...courseFiles(), ...readdirSync('src/tools').map((id) => `src/tools/${id}/guide.md`), ...readdirSync('src/blog', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/blog/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/blog/${d.name}/${f}`))];
 else changed = execFileSync('git', ['diff', '--name-only', base, head], { encoding: 'utf8' }).split('\n').filter(Boolean);
 
 const urls = new Set();
@@ -42,7 +49,7 @@ for (const f of changed) {
 const kinds = new Set();
 for (const f of changed) {
   const m = f.match(/^src\/blog\/([a-z]+)\/([a-z0-9-]+)\.md$/);
-  if (!m || !existsSync(f)) continue;
+  if (!m || !existsSync(f) || (publishedDay(f) ?? '') > today) continue;
   urls.add(`${SITE}/blog/${m[1]}/${m[2]}/`); kinds.add(m[1]);
 }
 if (kinds.size) { urls.add(`${SITE}/blog/`); for (const k of kinds) urls.add(`${SITE}/blog/${k}/`); }

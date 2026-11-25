@@ -60,7 +60,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
     <meta name="apple-mobile-web-app-title" content="fibub" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    {noindex && <meta name="robots" content="noindex" />}
+    {noindex ? <meta name="robots" content="noindex" /> : <meta name="robots" content="max-image-preview:large" />}
     <link rel="sitemap" href="/sitemap-index.xml" />
     {ldJson && <script is:inline type="application/ld+json" set:html={ldJson} />}
     <script is:inline src="/theme.js"></script>

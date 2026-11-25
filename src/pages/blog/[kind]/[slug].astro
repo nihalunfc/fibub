@@ -8,9 +8,9 @@ import NobelSeries from '../../../components/NobelSeries.astro';
 import { placeOf, SERIES } from '../../../data/nobel';
 import '../../../styles/area.css';
 import { render } from 'astro:content';
-import { allArticles, KINDS, kindOf, slugOf, articleUrl, mentions } from '../../../lib/blog';
+import { allArticles, KINDS, kindOf, slugOf, articleUrl, articleImage, mentions, publishedOf } from '../../../lib/blog';
 import { allTools, toolUrl } from '../../../lib/tools';
-import { articleLd, articleSeoTitle, metaDescription } from '../../../lib/seo';
+import { articleLd, articleSeoTitle, metaDescription, DESK } from '../../../lib/seo';
 export async function getStaticPaths() {
   const all = await allArticles();
   const tools = await allTools();
@@ -34,6 +34,8 @@ const main = kind.id === 'guides' ? covered[0] : null;
 const opener = main ?? (kind.id === 'howto' || kind.id === 'life' ? covered[0] : null);
 const url = articleUrl(a);
 const day = a.data.updated.toISOString().slice(0, 10);
+const pubDay = publishedOf(a).toISOString().slice(0, 10);
+const image = articleImage(a);
 // More reading: other articles that share a tool with this one, then the newest of the same kind.
 const mine = mentions(a);
 const shared = all.filter((b: any) => b !== a && [...mentions(b)].some((id) => mine.has(id)));
@@ -41,12 +43,12 @@ const more = [...shared, ...all.filter((b: any) => b !== a && kindOf(b) === kind
 const p = a.data.paper;
 const nobel = kind.id === 'nobel' ? slugOf(a) : null;
 ---
-<Base title={a.data.title} docTitle={articleSeoTitle(a.data.title, a.data.seoTitle)} description={a.data.seoDescription ?? metaDescription(a.data.summary)} ld={articleLd({ title: a.data.title, summary: a.data.summary, url, updated: a.data.updated, kindName: kind.name, kindUrl: `/blog/${kind.id}/`, tech: kind.id === 'guides', about: covered.map((t: any) => toolUrl(t)) })} image={main ? `/og/${main.id}.png` : undefined}>
+<Base title={a.data.title} docTitle={articleSeoTitle(a.data.title, a.data.seoTitle)} description={a.data.seoDescription ?? metaDescription(a.data.summary)} ld={articleLd({ title: a.data.title, summary: a.data.summary, url, updated: a.data.updated, published: publishedOf(a), image, kindName: kind.name, kindUrl: `/blog/${kind.id}/`, tech: kind.id === 'guides', news: kind.id === 'discoveries', about: covered.map((t: any) => toolUrl(t)) })} image={image} ogType="article">
   <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / <a href={`/blog/${kind.id}/`}>{kind.name}</a></div>
   <article class="prose post">
     {nobel && <NobelSeries slug={nobel} at="top" />}
     <h1>{a.data.title}</h1>
-    <p class="post-meta">{kind.one} · Updated <time datetime={day}>{day}</time>{a.data.level && <> · For {a.data.level}</>}{a.data.country && <> · {a.data.country}</>}</p>
+    <p class="post-meta">{kind.one} · By <a href={DESK.url}>{DESK.name}</a> · {pubDay < day ? <>Published <time datetime={pubDay}>{pubDay}</time> · Updated <time datetime={day}>{day}</time></> : <>Published <time datetime={pubDay}>{pubDay}</time></>}{a.data.level && <> · For {a.data.level}</>}{a.data.country && <> · {a.data.country}</>}</p>
     <p class="lead">{a.data.summary}</p>
     {opener && <p class="post-open"><a class="btn" href={toolUrl(opener)}>Open the {opener.data.name}</a> <span>Free, in your browser, nothing uploaded.</span></p>}
     {kind.id === 'life' && (

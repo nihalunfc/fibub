@@ -18,6 +18,7 @@ title: "What a sequence alignment shows, and how to read one"   # as people sear
 summary: "One or two sentences for cards and search results (160 characters or less reads best)."
 tools: [sequence-alignment, primer-checker]   # live tool ids, the main one first (a guide: the tool it explains)
 updated: 2026-11-10
+published: 2026-11-26       # optional: the day it goes live (UTC); see "Scheduled publishing" below
 level: "Class 9"            # kids only
 country: "Canada"           # life guides only
 sources:                    # where any reference values or facts beyond the textbook come from
@@ -70,6 +71,12 @@ A discovery article introduces the paper briefly, but is mainly about what fibub
 - `## How we test the maths`: the checks in `tests/sci.mjs` or `tests/sci-tools/<id>.mjs` that pin the tool against published results (name two or three, with their numbers), and that they run on every change.
 - `## Check it yourself`: numbered steps on the real tool page, using its actual field and button names, with the values to type and the answer the reader should see.
 - `## What researchers can use it for`: 3 to 5 concrete jobs (planning observations, sanity-checking a table, teaching), each with the tool that does it.
+
+## Scheduled publishing, share images and Google News (2026-11-25)
+- `published: YYYY-MM-DD` (optional) is the day an article goes out. Builds leave out any article whose day has not come; `.github/workflows/publish.yml` starts a build at 11:00 UTC on days that have one, and sends those pages to IndexNow. So a week of articles can be merged at once and go out a few a day. Without `published`, an article is out from `updated`. Never link (`[[blog:...]]`) to an article that is not out yet.
+- Research articles (ArticlePipeline01, 2 a day from 2026-11-25) are queued this way: give each the first day from tomorrow that has fewer than 2 research articles scheduled.
+- Every article except tool guides needs its own share image, which Google Discover uses: run `npm run images -- --blog --new` and commit `public/og/blog/<kind>-<slug>.png`. A research article's card shows its title over its first chart, so make the figures first. Tool guides use their tool's card.
+- Research articles are NewsArticles, listed in `/news-sitemap.xml` for two days after they go out. Every article shows its byline (fibub Science Desk, `/editorial/`) and the day it was published; titles must say plainly what the paper found (no clickbait: Google Discover drops pages whose titles exaggerate or tease).
 
 ## House rules
 - Plain, friendly English. Short sentences. Explain every term the first time.

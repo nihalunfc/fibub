@@ -6,7 +6,7 @@ import { allTools } from '../../../lib/tools';
 import { SKILL_COURSES, type SkillCourse } from '../../../data/skill-courses';
 import CourseSiblings from '../../../components/learn/CourseSiblings.astro';
 import '../../../styles/area.css';
-import { courseLd } from '../../../lib/seo';
+import { courseLd, courseImage } from '../../../lib/seo';
 import '../../../styles/learn.css';
 export function getStaticPaths() { return SKILL_COURSES.map((c) => ({ params: { course: c.id }, props: { c } })); }
 const { c } = Astro.props as { c: SkillCourse };
@@ -16,7 +16,7 @@ const lessons = c.lessons.map(live).filter((t) => !!t);
 const tools = c.tools.map(live).filter((t) => !!t);
 const ld = courseLd({ id: c.id, name: c.name, title: c.name, text: c.text }, lessons.map((t) => ({ name: t!.data.name, url: `/learn/${t!.id}/` })));
 ---
-<Base title={`${c.name}: free course`} description={c.text} ld={ld}>
+<Base title={`${c.name}: free course`} description={c.text} ld={ld} image={courseImage(c.id)}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/life-skills/">Life &amp; business</a> / {c.name}</div>
   <div class="ar-head">
     <h1>{c.name}</h1>

@@ -66,6 +66,10 @@ const blog = defineCollection({
     // that tool's page links to it as "Read the full guide".
     tools: z.array(z.string()).default([]),
     updated: z.coerce.date(),
+    // The day it goes live (UTC). Optional: without it the article is live from `updated`. An article
+    // with a later day is left out of every build until that day, so a week of articles can be merged at
+    // once and go out a few a day (.github/workflows/publish.yml starts the build each morning).
+    published: z.coerce.date().optional(),
     // For students: the class or level it is written for, e.g. "Class 8" or "Age 12 and up".
     level: z.string().optional(),
     // Life guides: the country the rules are for, e.g. "Canada" (shown under the title).

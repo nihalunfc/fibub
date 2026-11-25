@@ -9,7 +9,7 @@ import '../../styles/learn.css';
 import QBankLoader from '../qbank/QBankLoader.astro';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
-import { lessonLd } from '../../lib/seo';
+import { lessonLd, courseImage } from '../../lib/seo';
 import { lessonMinutes } from '../../lib/studytime';
 import '../../styles/course.css';
 interface Props { course: CourseSyllabus; entry: LessonEntry; slug: string; live: Set<string>; figures: Record<string, any> }
@@ -32,9 +32,9 @@ const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t)
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
 // A lesson borrowed from another course (sharedFrom) points search engines at its original page.
 const borrowed = course.sharedFrom && entry.id.startsWith(`${course.sharedFrom}/`) ? `/learn/courses/${course.sharedFrom}/${slug}/` : undefined;
-const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
+const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length }, courseImage(course.id));
 ---
-<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article" canonical={borrowed}>
+<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article" canonical={borrowed} image={courseImage(course.id)}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.kitDir ?? course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />

@@ -1,0 +1,30 @@
+---
+// Who writes the Blog and how: the page every article's byline ("By fibub Science Desk") links to.
+// Google News and Discover ask publishers to say plainly who is behind their articles and how they are made.
+import Base from '../layouts/Base.astro';
+import { SITE } from '../site';
+import { DESK } from '../lib/seo';
+---
+<Base title={`${DESK.name}: how we write and check articles`} docTitle="How fibub articles are written and checked | fibub" description="Who writes the fibub Blog, how research articles are chosen, written and checked with fibub's own tools, how we use AI, and how to ask for a correction.">
+  <article class="prose">
+    <h1>{DESK.name}</h1>
+    <p class="lead">The {DESK.name} writes the fibub Blog: plain-English stories about new open-access research, guides to the tools, and how-tos. This page says who we are, how an article is made, and how to tell us when we get something wrong.</p>
+
+    <h2>Who we are</h2>
+    <p>fibub is a small, independent, open-source project. The desk is run by <a href={SITE.maker.url}>{SITE.maker.name}</a>, a data analyst with a master's degree in physics, based in Ontario, Canada (more on the <a href="/about/">About page</a>). fibub takes no money from the researchers, journals or companies it writes about, and the site carries no ads.</p>
+
+    <h2>How a research article is made</h2>
+    <ol>
+      <li><b>Choosing a paper.</b> We pick recent papers that anyone can read for free and that are published under an open licence (Creative Commons Attribution), and we say which licence on every article. Preprints that have not yet been peer-reviewed are marked as such at the top.</li>
+      <li><b>Writing.</b> Articles are drafted with the help of AI writing tools and written in our own words. We never copy a paper's tables or figures.</li>
+      <li><b>Checking with the tools.</b> Every research article reworks at least one of the paper's numbers with a free fibub tool, and the charts on the page are made from that check, not copied from the paper. When the numbers do not agree, the article says so, and if the fault was in our tool we fix the tool.</li>
+      <li><b>Sources.</b> Each article names the paper in full, links to it, and lists every other source with the date we checked it.</li>
+    </ol>
+
+    <h2>Dates</h2>
+    <p>Each article shows the day it was published and, when it has changed since, the day it was last updated.</p>
+
+    <h2>Corrections and removal requests</h2>
+    <p>If you spot a mistake, or you are an author or publisher and want a credit or a passage changed or removed, <a href="/contact/">tell us</a>. We correct errors quickly and update the article's date when we do.</p>
+  </article>
+</Base>

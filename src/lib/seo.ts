@@ -1,6 +1,7 @@
 // What search engines read: the short <title> and description shown in results, and the structured
 // data (JSON-LD) that says what a page is. Pages pass these to Base.astro; tests/run.mjs checks every
 // built page keeps within the limits.
+import { existsSync } from 'node:fs';
 import { SITE, shelfById } from '../site';
 import type { Tool } from './tools';
 import { toolPlace, toolUrl } from './tools';
@@ -46,6 +47,8 @@ export function metaDescription(text: string) {
 export const toolDescription = (t: Tool) => t.data.seoDescription ?? metaDescription(t.data.summary);
 
 const abs = (p: string) => new URL(p, SITE.url).href;
+/** A course's share card (made by `npm run images`), used by its home and every lesson; else the home card. */
+export const courseImage = (id: string) => existsSync(`public/og/course/${id}.png`) ? `/og/course/${id}.png` : '/og/home.png';
 export const ORG_ID = `${SITE.url}/#org`;
 
 export type Crumb = { name: string; url: string };
@@ -103,17 +106,25 @@ export const toolLd = (t: Tool) => [
   breadcrumbs(toolCrumbs(t)),
 ];
 
-/** A Blog article: an Article (a TechArticle for tool guides) and its place in the Blog. */
-export const articleLd = (a: { title: string; summary: string; url: string; updated: Date; kindName: string; kindUrl: string; tech: boolean; about?: string[] }) => [
+/** Who writes the Blog: the fibub Science Desk, whose page (/editorial/) says how articles are made and checked. */
+export const DESK = { name: 'fibub Science Desk', url: '/editorial/' };
+const deskLd = () => ({ '@type': 'Organization', '@id': `${SITE.url}/editorial/#desk`, name: DESK.name, url: abs(DESK.url), parentOrganization: { '@id': ORG_ID } });
+
+/** A Blog article: a NewsArticle for research news (Discoveries), a TechArticle for tool guides, else an
+ *  Article; with its image, both dates and its author, as Google News and Discover ask for. */
+export const articleLd = (a: { title: string; summary: string; url: string; updated: Date; published: Date; image: string; kindName: string; kindUrl: string; tech: boolean; news: boolean; about?: string[] }) => [
   {
-    '@type': a.tech ? 'TechArticle' : 'Article',
+    '@type': a.news ? 'NewsArticle' : a.tech ? 'TechArticle' : 'Article',
     headline: a.title.slice(0, 110),
     description: a.summary,
     url: abs(a.url),
-    dateModified: a.updated.toISOString().slice(0, 10),
+    mainEntityOfPage: abs(a.url),
+    image: [abs(a.image)],
+    datePublished: a.published.toISOString().slice(0, 10),
+    dateModified: (a.updated > a.published ? a.updated : a.published).toISOString().slice(0, 10),
     inLanguage: 'en',
     isAccessibleForFree: true,
-    author: { '@id': ORG_ID },
+    author: deskLd(),
     publisher: { '@id': ORG_ID },
     isPartOf: { '@id': `${SITE.url}/#site` },
     ...(a.about?.length ? { about: a.about.map((u) => ({ '@id': `${abs(u)}#app` })) } : {}),
@@ -178,7 +189,7 @@ export function courseLd(c: CourseLike, lessons: { name: string; url: string }[]
 }
 
 /** One lesson: a LearningResource (also an Article for search) that is part of its course, with breadcrumbs. */
-export function lessonLd(c: CourseLike, l: { n: string; title: string; summary: string; slug: string; minutes: number; updated: Date; module: string; quiz: number }) {
+export function lessonLd(c: CourseLike, l: { n: string; title: string; summary: string; slug: string; minutes: number; updated: Date; module: string; quiz: number }, image = '/og/home.png') {
   const url = abs(`${courseUrl(c)}${l.slug}/`);
   const date = l.updated.toISOString().slice(0, 10);
   return [
@@ -187,7 +198,7 @@ export function lessonLd(c: CourseLike, l: { n: string; title: string; summary: 
       description: l.summary, url, mainEntityOfPage: url, inLanguage: 'en', isAccessibleForFree: true,
       learningResourceType: l.quiz ? ['Lesson', 'Quiz'] : 'Lesson', educationalLevel: 'Beginner',
       timeRequired: `PT${l.minutes}M`, position: l.n, about: l.module, dateModified: date, datePublished: date,
-      author: provider, publisher: { '@id': ORG_ID }, image: abs('/og/home.png'),
+      author: provider, publisher: { '@id': ORG_ID }, image: abs(image),
       isPartOf: { '@type': 'Course', '@id': courseId(c), name: c.title, url: abs(courseUrl(c)) },
     },
     breadcrumbs(courseCrumbs(c, { name: l.title, url: `${courseUrl(c)}${l.slug}/` })),
