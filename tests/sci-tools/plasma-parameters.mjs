@@ -26,6 +26,11 @@ export default async (check) => {
     check('plasma: argon thruster at 25 mT (Debye 2.0359 um, gyroradii 0.16520 and 4.4609 mm)', near(a.lambdaD, 2.035869e-6, 1e-5) && near(a.rLe, 1.652e-4, 1e-4) && near(a.rLi, 4.460874e-3, 1e-5));
     check('plasma: argon thruster Hall parameters (electrons 21.866, ions 1.1452e-4)', near(a.hallE, 21.8665, 1e-4) && near(a.hallI, 1.145206e-4, 1e-4));
   }
+  { // Voyager 1 in the interstellar medium: Kurth (2024), ApJL 963: L6, density 0.147 cm^-3, as used in the blog article
+    // voyager-1-interstellar-electron-density-0-147-plasma-frequency (7000 K and 0.5 nT are the article's assumptions).
+    const v = plasma({ ne: 0.147e6, Te: 7000 / EV_K, Ti: 7000 / EV_K, B: 0.5e-9, A: 1, Z: 1 });
+    check('plasma: Voyager 1 VLISM (fpe 3.4425 kHz, Debye 15.06 m, beta 0.2856)', near(v.fpe, 3442.47, 1e-5) && near(v.lambdaD, 15.059, 1e-4) && near(v.beta, 0.28565, 1e-4));
+  }
   const z = plasma({ ne: 1e20, Te: 1e4, Ti: 1e4, B: 5, A: 2, Z: 2, lnL: 15 });
   check('plasma: Z = 2 halves ion density and uses the given lnL', z.ni === 5e19 && z.lnL === 15);
 };
