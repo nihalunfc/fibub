@@ -24,6 +24,8 @@ const esc = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/
 const chip = (t, solid = true) => `<span class="chip${solid ? '' : ' line'}">${t}</span>`;
 const page = (body, h = 630) => `<!doctype html><html><head><style>
   * { box-sizing: border-box; margin: 0; }
+  /* The site's light-mode colours: research charts (scripts/blog-figures/svg.mjs) draw with these. */
+  :root { --ink: #0a0a0a; --muted: #5c5c5c; --line: #e3e3e3; --accent-soft: #f2f2f2; --c-blog: #b45309; --c-tools: #1d4ed8; }
   body { width: 1200px; height: ${h}px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111; background: #fff; position: relative; overflow: hidden; }
   .in { position: absolute; inset: 56px 72px; display: flex; flex-direction: column; }
   .brand { display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: 36px; letter-spacing: -.02em; }
