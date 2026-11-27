@@ -20,4 +20,7 @@ export default async (check) => {
   { const f = QS.idealGas('fd', QS.ME, 2, 1e10, 300), b = QS.idealGas('be', QS.ME, 2, 1e10, 300), c = QS.idealGas('mb', QS.ME, 2, 1e10, 300); check('quantum: dilute gas, all three statistics agree', Math.abs(f.eta - c.eta) < 1e-6 && Math.abs(b.eta - c.eta) < 1e-6 && near(f.meanE, c.meanE, 1e-8)); }
   { const f = QS.idealGas('fd', QS.ME, 2, 8.5e28, 1e-3); check('quantum: Fermi gas near absolute zero: μ → EF, U → 3/5 EF', near(f.mu, f.EF, 1e-8) && near(f.meanE, 0.6 * f.EF, 1e-6)); }
   { const n = 8.5e28, s = []; for (let i = 0; i < 20000; i++) { const E = (i + 0.5) * 1e-3 * QS.QE; s.push(QS.spectrum('fd', QS.ME, 2, e.mu, 300, E) * 1e-3 * QS.QE); } check('quantum: the energy spectrum integrates back to the density', near(s.reduce((a, b) => a + b, 0), n, 2e-4)); }
+  // Myers et al. (2026, PRL 137, 173001, doi:10.1103/gbkc-6nlj): a positron's 156.8 GHz cyclotron quantum at 5.6 T is 7.52 K, so in the
+  // 300 mK trap the chance of n >= 1 is e^(-25.08) = 1.285e-11, "slightly more than a part in 1e11"; at 4.2 K the mean quantum number is 0.200.
+  { const x = (QS.H * 156.757943e9) / QS.KB; check('quantum: positron cyclotron at 5.6 T: 7.52 K quantum, 1.285e-11 at 300 mK, 0.200 at 4.2 K', near(x, 7.5232, 1e-4) && near(QS.occupancy('mb', x / 0.3), 1.285e-11, 2e-3) && near(QS.occupancy('be', x / 4.2), 0.2001, 1e-3)); }
 };
