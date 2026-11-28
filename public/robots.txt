@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://fibub.com/sitemap-index.xml
+Sitemap: https://fibub.com/news-sitemap.xml

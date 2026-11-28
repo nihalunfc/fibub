@@ -23,8 +23,10 @@ function lastChanged() {
     if (!existsSync(`src/blog/${kind}`) || kind.includes('.')) continue;
     for (const f of readdirSync(`src/blog/${kind}`)) {
       if (!f.endsWith('.md')) continue;
-      const m = readFileSync(`src/blog/${kind}/${f}`, 'utf8').match(/^updated:\s*(\S+)/m);
-      if (m) byArticle.set(`${kind}/${f.slice(0, -3)}`, m[1]);
+      const src = readFileSync(`src/blog/${kind}/${f}`, 'utf8');
+      // The later of `updated` and `published` (a scheduled article is new on the day it goes out).
+      const days = [/^updated:\s*(\S+)/m, /^published:\s*(\S+)/m].map((re) => src.match(re)?.[1]).filter(Boolean).sort();
+      if (days.length) byArticle.set(`${kind}/${f.slice(0, -3)}`, days.at(-1));
     }
   }
   // Course lessons (/learn/courses/<course>/<slug>/) use their own `updated`; a course home takes its newest lesson.

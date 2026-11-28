@@ -1,7 +1,7 @@
 // The Blog's RSS 2.0 feed at /blog/feed.xml: the 50 newest articles, for feed readers and search
 // engines (it can be submitted to Google Search Console next to the sitemap). Plain XML, no library.
 import type { APIRoute } from 'astro';
-import { allArticles, articleUrl, KINDS, kindOf } from '../../lib/blog';
+import { allArticles, articleUrl, articleImage, KINDS, kindOf, publishedOf } from '../../lib/blog';
 import { SITE } from '../../site';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -16,9 +16,10 @@ export const GET: APIRoute = async () => {
       <title>${esc(a.data.title)}</title>
       <link>${link}</link>
       <guid isPermaLink="true">${link}</guid>
-      <pubDate>${a.data.updated.toUTCString()}</pubDate>
+      <pubDate>${publishedOf(a).toUTCString()}</pubDate>
       <category>${esc(kind)}</category>
       <description>${esc(a.data.summary)}</description>
+      <enclosure url="${new URL(articleImage(a), SITE.url).href}" length="0" type="image/png" />
     </item>`;
   }).join('\n');
   const body = `<?xml version="1.0" encoding="UTF-8"?>
@@ -29,7 +30,7 @@ export const GET: APIRoute = async () => {
     <atom:link href="${self}" rel="self" type="application/rss+xml" />
     <description>Guides, how-tos and research discoveries for fibub's free in-browser tools.</description>
     <language>en</language>
-    <lastBuildDate>${(list[0]?.data.updated ?? new Date()).toUTCString()}</lastBuildDate>
+    <lastBuildDate>${(list[0] ? publishedOf(list[0]) : new Date()).toUTCString()}</lastBuildDate>
 ${items}
   </channel>
 </rss>
