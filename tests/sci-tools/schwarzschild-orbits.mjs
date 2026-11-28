@@ -25,4 +25,11 @@ export default async (check) => {
     return near(arcmin(o.precession), 105.4921289, 1e-7) && near(arcmin(o.weak), 104.6828912, 1e-7)
       && near(o.E, 0.9999759504722112, 1e-13) && near(o.L, 24.9601318, 1e-8) && near(o.p, 619.0123263, 1e-8);
   })());
+  // Primordial black hole in a Sun-like star (Gottlieb et al. 2026, ApJ 1012: 157, CC BY 4.0), as used in
+  // /blog/discoveries/primordial-black-hole-inside-sun-like-star-atom-sized-horizon-disk-threshold/.
+  check('gr: a 1e20 g black hole has a 1.4852e-10 m horizon; disk threshold 0.0674 solar masses at λ 0.1, c_s 600 km/s', (() => {
+    const c = 299792458, lenM = (1e20 / 1.98841e33) * G.M_SUN_M, omK = Math.sqrt((G.M_SUN_M * c * c) / 6.957e8 ** 3), rb = 2 * (c / 6e5) ** 2;
+    const m = (3 * G.circular(6).L * c) / (2 * 0.1 * omK * rb * rb) / G.M_SUN_M;
+    return near(2 * lenM, 1.4852319e-10, 1e-7) && near(m, 0.0674, 0.001);
+  })());
 };
